@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CSV",
+        "repositoryURL": "https://github.com/RISCfuture/csv.swift.git",
+        "state": {
+          "branch": "master",
+          "revision": "d9b71c38e9e8d3f35d9d5973c7c3b71010905f5d",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
