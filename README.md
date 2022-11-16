@@ -68,3 +68,18 @@ callback includes those records that were parsed without error.
 
 Parsing is an expensive operation. See the `Parser` class for methods that will
 allow you to parse a subset of the airmen certification data.
+
+## Documentation
+
+DocC documentation is available, including tutorials and API documentation. For
+Xcode documentation, you can run
+
+``` sh
+swift package generate-documentation --target SwiftAirmen
+```
+
+to generate a docarchive at
+`.build/plugins/Swift-DocC/outputs/SwiftAirmen.doccarchive`. You can open this
+docarchive file in Xcode for browseable API documentation. Or, within Xcode,
+open the SwiftNASR package in Xcode and choose **Build Documentation** from the
+**Product** menu.
