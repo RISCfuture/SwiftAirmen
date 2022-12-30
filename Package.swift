@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SwiftAirmen",
+    defaultLocalization: "en",
     platforms: [.macOS(.v12), .iOS(.v15), .tvOS(.v14), .watchOS(.v8)],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -23,7 +24,8 @@ let package = Package(
             name: "SwiftAirmen",
             dependencies: [
                 .product(name: "CSV", package: "csv.swift")
-            ]),
+            ],
+            resources: [.process("Resources")]),
         .testTarget(
             name: "SwiftAirmenTests",
             dependencies: ["SwiftAirmen"]),
@@ -33,3 +35,4 @@ let package = Package(
     ],
     swiftLanguageVersions: [.v5]
 )
+
