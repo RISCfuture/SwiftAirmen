@@ -21,7 +21,7 @@ Use Swift Package Manager to include SwiftAirmen in your project:
 let package = Package(
     // [...]
     dependencies: [
-        .package(url: "https://github.com/RISCfuture/SwiftAirmen", branch: "master")
+        .package(url: "https://github.com/RISCfuture/SwiftAirmen", branch: "main")
     ],
     // [...]
 )
