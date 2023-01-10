@@ -31,9 +31,10 @@ Be sure to include SwiftAirmen as a dependency in your `.target` entry.
 
 ## Topics
 
-### Parsing
+### Downloading and Parsing
 
 - <doc:GettingStarted>
+- ``Downloader``
 - ``Parser``
 
 ### Airmen
@@ -42,6 +43,11 @@ Be sure to include SwiftAirmen as a dependency in your `.target` entry.
 - ``Certificate``
 - ``Medical``
 
-### Supporting Types
+### Progress
+
+- ``Progress``
+- ``AsyncProgress``
+
+### Errors
 
 - ``Errors``

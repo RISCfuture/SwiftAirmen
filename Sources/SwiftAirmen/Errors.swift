@@ -86,11 +86,24 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case invalidRating(_ rating: String, uniqueID: String)
+    
+    /**
+     An error when attempting to download the airmen CSV data.
+     
+     - Parameter request: The failed request.
+     - Parameter response: The failed response (may be an `HTTPURLResponse`).
+     */
+    case networkError(request: URLRequest, response: URLResponse)
 }
 
 extension Errors: LocalizedError {
     public var errorDescription: String? {
-        return t("Failed to parse airmen data.", comment: "error description")
+        switch self {
+            case .networkError:
+                return t("Failed to download airmen data.", comment: "error description")
+            default:
+                return t("Failed to parse airmen data.", comment: "error description")
+        }
     }
     
     public var failureReason: String? {
@@ -128,11 +141,25 @@ extension Errors: LocalizedError {
             case let .invalidRating(string, uniqueID):
                 return t("Improperly formatted rating “%@” for record %@", comment: "failure reason",
                          string, uniqueID)
+            case let .networkError(request, response):
+                if let response = response as? HTTPURLResponse {
+                    return t("HTTP response %d received when downloading from “%@”.", comment: "failure reason",
+                             response.statusCode, request.url!.absoluteString)
+                } else {
+                    return t("Unexpected network error occurred when downloading from “%@”.", comment: "failure reason",
+                             request.url!.absoluteString)
+                }
         }
     }
     
     public var recoverySuggestion: String? {
-        return t("Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.", comment: "recovery suggestion")
+        switch self {
+            case let .networkError(request, _):
+                return t("Verify that “%@” is accessible via your Internet connection.", comment: "recovery suggestion",
+                         request.url!.absoluteString)
+            default:
+                return t("Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.", comment: "recovery suggestion")
+        }
     }
 }
 

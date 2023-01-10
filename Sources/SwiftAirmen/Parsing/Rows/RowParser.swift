@@ -1,244 +1,25 @@
 import Foundation
-import Dispatch
 import CSV
 
-/**
- Parses an airman certification database into memory. The database must be
- downloaded
- [from the FAA website](https://www.faa.gov/licenses_certificates/airmen_certification/releasable_airmen_download/)
- in CSV format and stored, unarchived, in a
- directory somewhere accessible. The names of the CSV files must not be changed.
- */
-public class Parser {
-    /// The directory that the parser will look for CSV files in.
-    public let directory: URL
+protocol RowParser {
+    associatedtype RowType: Decodable
     
-    /// The GCD queue that will be used for parsing operations.
-    public var queue = DispatchQueue(label: "codes.tim.SwiftAirmen", qos: .background, attributes: [.concurrent])
-    private let airmenSemaphore = DispatchSemaphore(value: 1)
-    
-    private static let pilotBasicFile = "PILOT_BASIC.csv"
-    private static let nonpilotBasicFile = "NONPILOT_BASIC.csv"
-    private static let pilotCertFile = "PILOT_CERT.csv"
-    private static let nonPilotCertFile = "NONPILOT_CERT.csv"
-    
-    /// An estimation of the amount of work required to parse the
-    /// `PILOT_BASIC.CSV` file. Used by `Progress`.
-    public var pilotBasicWorkUnits: Int64 = 569237
-    
-    /// An estimation of the amount of work required to parse the
-    /// `NONPILOT_BASIC.CSV` file. Used by `Progress`.
-    public var nonpilotBasicWorkUnits: Int64 = 389756
-    
-    /// An estimation of the amount of work required to parse the
-    /// `PILOT_CERT.CSV` file. Used by `Progress`.
-    public var pilotCertWorkUnits: Int64 = 674597*36
-    
-    /// An estimation of the amount of work required to parse the
-    /// `NONPILOT_CERT.CSV` file. Used by `Progress`.
-    public var nonpilotCertWorkUnits: Int64 = 403499
-    
-    /// An estimation of the amount of work required to parse the
-    /// `PILOT_BASIC.CSV` file. Used by `Progress`.
-    private var mergeWorkUnits: Int64 = 2037089
-    
-    private var totalWorkUnits: Int64 {
-        pilotBasicWorkUnits + nonpilotBasicWorkUnits + pilotCertWorkUnits + nonpilotCertWorkUnits + mergeWorkUnits
+    init()
+    func parseRow(_ row: RowType) throws -> Airman
+}
+
+extension RowParser {
+    func parse(parser: CSVParser) throws -> Airman? {
+        guard let row = try parser.next(as: RowType.self) else { return nil }
+        return try parseRow(row)
     }
-    
-    /**
-     Creates a new instance.
-     
-     - Parameter directory: The directory containing the CSV files.
-     */
-    public init(directory: URL) {
-        self.directory = directory
-    }
-    
-    /**
-     Parses all records in all CSV files within the directory. Rows are parsed
-     across all four database files and combined into individual `Airmen`
-     records.
-     
-     Execution is asynchronous and occurs on `queue`.
-     
-     - Parameter callback: Code to execute once parsing is complete.
-     - Parameter airmen: A dictionary mapping airmen record IDs to `Airmen`
-                         records.
-     - Parameter errorCallback: Code to execute when any parsing error occurs.
-                                Parsing errors do not cause parsing to abort.
-     - Parameter error: The parsing error that occurred.
-     - Returns: A `Progress` instance that tracks overall parsing progress.
-     */
-    @discardableResult public func parse(callback: @escaping (_ airmen: Dictionary<String, Airman>) -> Void, errorCallback: @escaping (_ error: Error) -> Void) throws -> Progress {
-        let group = DispatchGroup()
-        let db = AirmanDatabase()
-        
-        let progress = Progress(totalUnitCount: totalWorkUnits)
-        
-        queue.async(group: group) {
-            do {
-                var subprogress: Progress? = Progress(totalUnitCount: 0, parent: progress, pendingUnitCount: self.pilotBasicWorkUnits)
-                db.append(airmen: try self.parsePilotBasic(errorCallback: errorCallback, progress: &subprogress))
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        queue.async(group: group) {
-            do {
-                var subprogress: Progress? = Progress(totalUnitCount: 0, parent: progress, pendingUnitCount: self.nonpilotBasicWorkUnits)
-                db.append(airmen: try self.parseNonPilotBasic(errorCallback: errorCallback, progress: &subprogress))
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        queue.async(group: group) {
-            do {
-                var subprogress: Progress? = Progress(totalUnitCount: 0, parent: progress, pendingUnitCount: self.pilotCertWorkUnits)
-                db.append(airmen: try self.parsePilotCert(errorCallback: errorCallback, progress: &subprogress))
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        queue.async(group: group) {
-            do {
-                var subprogress: Progress? = Progress(totalUnitCount: 0, parent: progress, pendingUnitCount: self.nonpilotCertWorkUnits)
-                db.append(airmen: try self.parseNonPilotCert(errorCallback: errorCallback, progress: &subprogress))
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        group.notify(queue: queue) {
-            progress.addChild(db.merged(callback: callback), withPendingUnitCount: self.mergeWorkUnits)
-        }
-        
-        return progress
-    }
-    
-    /**
-     Parses the `PILOT_BASIC.CSV` file only. Execution is synchronous.
-     
-     - Parameter errorCallback: Called when an error occurs during parsing.
-                                Errors do not abort parsing.
-     - Parameter error: The parse error that occurred.
-     - Parameter progress: An optional `Progress` instance that can be used to
-                           track the progress of the parse operation in a
-                           separate thread. Pass `nil` if you do not need to
-                           track progress.
-     - Returns: The parsed airmen records.
-     */
-    public func parsePilotBasic(errorCallback: @escaping (_ error: Error) -> Void, progress: inout Progress?) throws -> Array<Airman> {
-        return try parseBasic(filename: Self.pilotBasicFile, errorCallback: errorCallback, progress: &progress)
-    }
-    
-    /**
-     Parses the `NONPILOT_BASIC.CSV` file only. Execution is synchronous.
-     
-     - Parameter errorCallback: Called when an error occurs during parsing.
-     Errors do not abort parsing.
-     - Parameter error: The parse error that occurred.
-     - Parameter progress: An optional `Progress` instance that can be used to
-     track the progress of the parse operation in a
-     separate thread. Pass `nil` if you do not need to
-     track progress.
-     - Returns: The parsed airmen records.
-     */
-    public func parseNonPilotBasic(errorCallback: @escaping (_ error: Error) -> Void, progress: inout Progress?) throws -> Array<Airman> {
-        return try parseBasic(filename: Self.nonpilotBasicFile, errorCallback: errorCallback, progress: &progress)
-    }
-    
-    /**
-     Parses the `PILOT_CERT.CSV` file only. Execution is synchronous.
-     
-     - Parameter errorCallback: Called when an error occurs during parsing.
-     Errors do not abort parsing.
-     - Parameter error: The parse error that occurred.
-     - Parameter progress: An optional `Progress` instance that can be used to
-     track the progress of the parse operation in a
-     separate thread. Pass `nil` if you do not need to
-     track progress.
-     - Returns: The parsed airmen records.
-     */
-    public func parsePilotCert(errorCallback: @escaping (_ error: Error) -> Void, progress: inout Progress?) throws -> Array<Airman> {
-        let url = directory.appendingPathComponent(Self.pilotCertFile)
-        
-        progress?.totalUnitCount = try countLines(in: url)
-        progress?.completedUnitCount = 0
-        
-        let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
-        var airmen = Array<Airman>()
-        while true {
-            do {
-                guard let row = try parser.next(as: PilotCertRow.self) else { break }
-                airmen.append(try parsePilotCertRow(row))
-                progress?.completedUnitCount += 1
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        return airmen
-    }
-    
-    /**
-     Parses the `NONPILOT_CERT.CSV` file only. Execution is synchronous.
-     
-     - Parameter errorCallback: Called when an error occurs during parsing.
-     Errors do not abort parsing.
-     - Parameter error: The parse error that occurred.
-     - Parameter progress: An optional `Progress` instance that can be used to
-     track the progress of the parse operation in a
-     separate thread. Pass `nil` if you do not need to
-     track progress.
-     - Returns: The parsed airmen records.
-     */
-    public func parseNonPilotCert(errorCallback: @escaping (_ error: Error) -> Void, progress: inout Progress?) throws -> Array<Airman> {
-        let url = directory.appendingPathComponent(Self.nonPilotCertFile)
-        
-        progress?.totalUnitCount = try countLines(in: url)
-        progress?.completedUnitCount = 0
-        
-        let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
-        var airmen = Array<Airman>()
-        while true {
-            do {
-                guard let row = try parser.next(as: NonPilotCertRow.self) else { break }
-                airmen.append(try parseNonPilotCertRow(row))
-                progress?.completedUnitCount += 1
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        return airmen
-    }
-    
-    private func parseBasic(filename: String, errorCallback: @escaping (Error) -> Void, progress: inout Progress?) throws -> Array<Airman> {
-        let url = directory.appendingPathComponent(filename)
-        
-        progress?.totalUnitCount = try countLines(in: url)
-        progress?.completedUnitCount = 0
-        
-        let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
-        var airmen = Array<Airman>()
-        while true {
-            do {
-                guard let row = try parser.next(as: AirmanBasicRow.self) else { break }
-                airmen.append(try parseBasicRow(row))
-                progress?.completedUnitCount += 1
-            } catch let error {
-                errorCallback(error)
-            }
-        }
-        
-        return airmen
-    }
-    
-    private func parseBasicRow(_ row: AirmanBasicRow) throws -> Airman {
+}
+
+
+// MARK: - BasicRowParser
+
+final class BasicRowParser: RowParser {
+    func parseRow(_ row: AirmanBasicRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
@@ -286,8 +67,12 @@ public class Parser {
         
         return airman
     }
-    
-    private func parsePilotCertRow(_ row: PilotCertRow) throws -> Airman {
+}
+
+// MARK: - PilotCertRowParser
+
+final class PilotCertRowParser: RowParser {
+    func parseRow(_ row: PilotCertRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
@@ -433,7 +218,22 @@ public class Parser {
         return airman
     }
     
-    private func parseNonPilotCertRow(_ row: NonPilotCertRow) throws -> Airman {
+    private func convertLevel(_ level: PilotCertRow.Level.Pilot) -> PilotLevel {
+        switch level {
+            case .airlineTransport: return .airlineTransport
+            case .commercial: return .commercial
+            case .private: return .private
+            case .recreational: return .recreational
+            case .sport: return .sport
+            case .student: return .student
+        }
+    }
+}
+
+// MARK: - NonPilotCertRowParser
+
+final class NonPilotCertRowParser: RowParser {
+    func parseRow(_ row: NonPilotCertRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
@@ -523,23 +323,5 @@ public class Parser {
         }
         
         return airman
-    }
-    
-    private func countLines(in url: URL) throws -> Int64 {
-        let data = try String(contentsOf: url, encoding: .ascii)
-        var count: Int64 = 0
-        data.enumerateLines { _, _ in count += 1 }
-        return count
-    }
-    
-    private func convertLevel(_ level: PilotCertRow.Level.Pilot) -> PilotLevel {
-        switch level {
-            case .airlineTransport: return .airlineTransport
-            case .commercial: return .commercial
-            case .private: return .private
-            case .recreational: return .recreational
-            case .sport: return .sport
-            case .student: return .student
-        }
     }
 }

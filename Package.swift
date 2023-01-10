@@ -15,7 +15,10 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/RISCfuture/csv.swift.git", branch: "master"),
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
+        .package(url: "https://github.com/marmelroy/Zip.git", from: "2.1.0"),
+        .package(url: "https://github.com/jkandzi/Progress.swift", from: "0.4.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -23,7 +26,8 @@ let package = Package(
         .target(
             name: "SwiftAirmen",
             dependencies: [
-                .product(name: "CSV", package: "csv.swift")
+                .product(name: "CSV", package: "csv.swift"),
+                "Zip"
             ],
             resources: [.process("Resources")]),
         .testTarget(
@@ -31,7 +35,11 @@ let package = Package(
             dependencies: ["SwiftAirmen"]),
         .executableTarget(
             name: "SwiftAirmenE2E",
-            dependencies: ["SwiftAirmen"])
+            dependencies: [
+                "SwiftAirmen",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Progress", package: "Progress.swift")
+            ])
     ],
     swiftLanguageVersions: [.v5]
 )

@@ -6,37 +6,48 @@ class AirmanDatabase {
     private let airmenSemaphore = DispatchSemaphore(value: 1)
     private let queue = DispatchQueue(label: "codes.tim.SwiftAirmen.AirmanDatabase", qos: .background, attributes: .concurrent)
     
-    func append(airmen: Array<Airman>) {
+    @discardableResult
+    func append(airmen: Array<Airman>) -> Self {
         queue.async {
             self.airmenSemaphore.wait()
             defer { self.airmenSemaphore.signal() }
             
             self.airmen.append(contentsOf: airmen)
         }
+        return self
     }
     
-    @discardableResult func merged(callback: @escaping (Dictionary<String, Airman>) -> Void) -> Progress {
-        let progress = Progress()
-        
+    @discardableResult
+    func append(airman: Airman) -> Self {
         queue.async {
             self.airmenSemaphore.wait()
             defer { self.airmenSemaphore.signal() }
             
-            progress.totalUnitCount = Int64(self.airmen.count)
-            
-            var airmenDict = Dictionary<String, Airman>()
-            for airman in self.airmen {
-                if let existingAirman = airmenDict[airman.id] {
-                    airmenDict[airman.id] = existingAirman.mergedWith(airman)
-                } else {
-                    airmenDict[airman.id] = airman
-                }
-                progress.completedUnitCount += 1
+            self.airmen.append(airman)
+        }
+        return self
+    }
+    
+    func merged(callback: @escaping (Dictionary<String, Airman>) -> Void) {
+        queue.async {
+            let dict = self.merged()
+            callback(dict)
+        }
+    }
+    
+    func merged() -> Dictionary<String, Airman> {
+        self.airmenSemaphore.wait()
+        defer { self.airmenSemaphore.signal() }
+        
+        var airmenDict = Dictionary<String, Airman>()
+        for airman in self.airmen {
+            if let existingAirman = airmenDict[airman.id] {
+                airmenDict[airman.id] = existingAirman.mergedWith(airman)
+            } else {
+                airmenDict[airman.id] = airman
             }
-            
-            callback(airmenDict)
         }
         
-        return progress
+        return airmenDict
     }
 }
