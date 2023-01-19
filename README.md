@@ -96,5 +96,5 @@ swift package generate-documentation --target SwiftAirmen
 to generate a docarchive at
 `.build/plugins/Swift-DocC/outputs/SwiftAirmen.doccarchive`. You can open this
 docarchive file in Xcode for browseable API documentation. Or, within Xcode,
-open the SwiftNASR package in Xcode and choose **Build Documentation** from the
+open the SwiftAirmen package in Xcode and choose **Build Documentation** from the
 **Product** menu.
