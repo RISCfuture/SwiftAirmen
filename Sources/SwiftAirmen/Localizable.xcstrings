@@ -1,0 +1,113 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Failed to download airmen data." : {
+      "comment" : "error description"
+    },
+    "Failed to parse airmen data." : {
+      "comment" : "error description"
+    },
+    "HTTP response %lld received when downloading from “%@”." : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HTTP response %1$lld received when downloading from “%2$@”."
+          }
+        }
+      }
+    },
+    "Improperly formatted rating “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Improperly formatted rating “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Invalid date “%@”" : {
+      "comment" : "failure reason"
+    },
+    "No certificate expiration date for record %@" : {
+      "comment" : "failure reason"
+    },
+    "No certificate level for record %@" : {
+      "comment" : "failure reason"
+    },
+    "No certificate type for record %@" : {
+      "comment" : "failure reason"
+    },
+    "No medical expiration date for record %@" : {
+      "comment" : "failure reason"
+    },
+    "Unexpected network error occurred when downloading from “%@”." : {
+      "comment" : "failure reason"
+    },
+    "Unknown certificate level “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown certificate level “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Unknown certificate type “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown certificate type “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Unknown medical class “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown medical class “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Unknown rating “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown rating “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Unknown rating level “%@” for record %@" : {
+      "comment" : "failure reason",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unknown rating level “%1$@” for record %2$@"
+          }
+        }
+      }
+    },
+    "Verify that “%@” is accessible via your Internet connection." : {
+      "comment" : "recovery suggestion"
+    },
+    "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen." : {
+      "comment" : "recovery suggestion"
+    }
+  },
+  "version" : "1.0"
+}

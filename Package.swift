@@ -28,8 +28,7 @@ let package = Package(
             dependencies: [
                 .product(name: "CSV", package: "csv.swift"),
                 "Zip"
-            ],
-            resources: [.process("Resources")]),
+            ]),
         .testTarget(
             name: "SwiftAirmenTests",
             dependencies: ["SwiftAirmen"]),

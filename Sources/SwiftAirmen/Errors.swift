@@ -100,54 +100,41 @@ extension Errors: LocalizedError {
     public var errorDescription: String? {
         switch self {
             case .networkError:
-                return t("Failed to download airmen data.", comment: "error description")
+                return String(localized: "Failed to download airmen data.", comment: "error description")
             default:
-                return t("Failed to parse airmen data.", comment: "error description")
+                return String(localized: "Failed to parse airmen data.", comment: "error description")
         }
     }
     
     public var failureReason: String? {
         switch self {
             case let .invalidDate(date):
-                return t("Invalid date “%@”", comment: "failure reason",
-                         date)
+                return String(localized: "Invalid date “\(date)”", comment: "failure reason")
             case let .certificateTypeNotGiven(uniqueID):
-                return t("No certificate type for record %@", comment: "failure reason",
-                         uniqueID)
+                return String(localized: "No certificate type for record \(uniqueID)", comment: "failure reason")
             case let .levelNotGiven(uniqueID):
-                return t("No certificate level for record %@", comment: "failure reason",
-                         uniqueID)
+                return String(localized: "No certificate level for record \(uniqueID)", comment: "failure reason")
             case let .expirationDateNotGiven(uniqueID):
-                return t("No certificate expiration date for record %@", comment: "failure reason",
-                         uniqueID)
+                return String(localized: "No certificate expiration date for record \(uniqueID)", comment: "failure reason")
             case let .medicalWithoutDate(uniqueID):
-                return t("No medical expiration date for record %@", comment: "failure reason",
-                         uniqueID)
+                return String(localized: "No medical expiration date for record \(uniqueID)", comment: "failure reason")
             case let .unknownMedicalClass(`class`, uniqueID):
-                return t("Unknown medical class “%@” for record %@", comment: "failure reason",
-                         `class`, uniqueID)
+                return String(localized: "Unknown medical class “\(`class`)” for record \(uniqueID)", comment: "failure reason")
             case let .unknownCertificateType(type, uniqueID):
-                return t("Unknown certificate type %@” for record %@", comment: "failure reason",
-                         type, uniqueID)
+                return String(localized: "Unknown certificate type “\(type)” for record \(uniqueID)", comment: "failure reason")
             case let .unknownRating(rating, uniqueID):
-                return t("Unknown rating “%@” for record %@", comment: "failure reason",
-                         rating, uniqueID)
+                return String(localized: "Unknown rating “\(rating)” for record \(uniqueID)", comment: "failure reason")
             case let .unknownCertificateLevel(level, uniqueID):
-                return t("Unknown certificate level “%@” for record %@", comment: "failure reason",
-                         level, uniqueID)
+                return String(localized: "Unknown certificate level “\(level)” for record \(uniqueID)", comment: "failure reason")
             case let .unknownRatingLevel(level, uniqueID):
-                return t("Unknown rating level “%@” for record %@", comment: "failure reason",
-                         level, uniqueID)
+                return String(localized: "Unknown rating level “\(level)” for record \(uniqueID)", comment: "failure reason")
             case let .invalidRating(string, uniqueID):
-                return t("Improperly formatted rating “%@” for record %@", comment: "failure reason",
-                         string, uniqueID)
+                return String(localized: "Improperly formatted rating “\(string)” for record \(uniqueID)", comment: "failure reason")
             case let .networkError(request, response):
                 if let response = response as? HTTPURLResponse {
-                    return t("HTTP response %d received when downloading from “%@”.", comment: "failure reason",
-                             response.statusCode, request.url!.absoluteString)
+                    return String(localized: "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
                 } else {
-                    return t("Unexpected network error occurred when downloading from “%@”.", comment: "failure reason",
-                             request.url!.absoluteString)
+                    return String(localized: "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
                 }
         }
     }
@@ -155,19 +142,9 @@ extension Errors: LocalizedError {
     public var recoverySuggestion: String? {
         switch self {
             case let .networkError(request, _):
-                return t("Verify that “%@” is accessible via your Internet connection.", comment: "recovery suggestion",
-                         request.url!.absoluteString)
+                return String(localized: "Verify that “\(request.url!.absoluteString)” is accessible via your Internet connection.", comment: "recovery suggestion")
             default:
-                return t("Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.", comment: "recovery suggestion")
+                return String(localized: "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.", comment: "recovery suggestion")
         }
-    }
-}
-
-fileprivate func t(_ key: String, comment: String, _ arguments: CVarArg...) -> String {
-    let format = NSLocalizedString(key, bundle: Bundle.module, comment: comment)
-    if arguments.isEmpty {
-        return format
-    } else {
-        return String(format: format, arguments: arguments)
     }
 }
