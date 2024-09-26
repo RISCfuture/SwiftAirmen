@@ -1,8 +1,7 @@
 import Foundation
 import ArgumentParser
-import Progress
+@preconcurrency import Progress
 
-@available(macOS 13.0, *)
 @main
 struct SwiftAirmenE2E: AsyncParsableCommand {
     @Option(name: .long,
@@ -10,16 +9,17 @@ struct SwiftAirmenE2E: AsyncParsableCommand {
             completion: .directory,
             transform: { URL(filePath: $0) })
     var workingDirectory = Process().currentDirectoryURL!
-    
+
     func run() async throws {
+        setupProgress()
+        try await Runner().run()
+    }
+
+    private func setupProgress() {
         ProgressBar.defaultConfiguration = [
             ProgressPercent(decimalPlaces: 0),
             ProgressBarLine(),
             ProgressTimeEstimates()
         ]
-        
-        try await AsyncRunner().run()
-//        try CombineRunner().run()
-//        try CallbacksRunner().run()
     }
 }

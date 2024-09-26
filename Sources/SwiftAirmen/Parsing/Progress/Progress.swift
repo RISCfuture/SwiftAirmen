@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents the progress of a parsing operation.
-public struct Progress {
+public actor Progress {
     
     /// The number of records already parsed.
     public let completed: Int64

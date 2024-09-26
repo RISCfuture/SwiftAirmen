@@ -1,8 +1,8 @@
 import Foundation
 
 /// A certificate level for a pilot certificate.
-public enum PilotLevel: Comparable, CustomStringConvertible {
-    
+public enum PilotLevel: Comparable, CustomStringConvertible, Sendable {
+
     /// A student pilot certificate.
     case student
     
@@ -35,7 +35,7 @@ public enum PilotLevel: Comparable, CustomStringConvertible {
 }
 
 /// Aircraft category/class combinations for a pilot certificate.
-public enum PilotCategoryClass: Comparable, CustomStringConvertible {
+public enum PilotCategoryClass: Comparable, CustomStringConvertible, Sendable {
     /// The airplane category, single-engine land class.
     case airplaneSingleEngineLand
     
@@ -85,8 +85,8 @@ public enum PilotCategoryClass: Comparable, CustomStringConvertible {
 
 
 /// Aircraft categories for a pilot instrument rating.
-public enum InstrumentCategory: Comparable, CustomStringConvertible {
-    
+public enum InstrumentCategory: Comparable, CustomStringConvertible, Sendable {
+
     /// The airplane category.
     case airplane
     
@@ -107,8 +107,8 @@ public enum InstrumentCategory: Comparable, CustomStringConvertible {
 
 
 /// Ratings for a flight engineer certificate.
-public enum FlightEngineerRating: Comparable, CustomStringConvertible {
-    
+public enum FlightEngineerRating: Comparable, CustomStringConvertible, Sendable {
+
     /// Reciprocating engine rating.
     case reciprocating
     
@@ -128,8 +128,8 @@ public enum FlightEngineerRating: Comparable, CustomStringConvertible {
 }
 
 /// Certificate levels for a parachute rigger certificate.
-public enum RiggerLevel: Comparable, CustomStringConvertible {
-    
+public enum RiggerLevel: Comparable, CustomStringConvertible, Sendable {
+
     /// Senior-level parachute rigger.
     case senior
     
@@ -145,8 +145,8 @@ public enum RiggerLevel: Comparable, CustomStringConvertible {
 }
 
 /// Ratings for a parachute rigger certificate.
-public enum RiggerRating: Comparable, Hashable, CustomStringConvertible {
-    
+public enum RiggerRating: Comparable, Hashable, CustomStringConvertible, Sendable {
+
     /**
      A back type rating.
      
@@ -227,8 +227,8 @@ public enum RiggerRating: Comparable, Hashable, CustomStringConvertible {
 }
 
 /// A rating applied to a pilot certificate.
-public enum PilotRating: Comparable, Hashable, CustomStringConvertible {
-    
+public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable {
+
     /**
      A rating for a category and class of aircraft.
      
@@ -306,8 +306,8 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible {
 }
 
 /// An aircraft category rating for a flight instructor certificate.
-public enum FlightInstructorCategory: Comparable, CustomStringConvertible {
-    
+public enum FlightInstructorCategory: Comparable, CustomStringConvertible, Sendable {
+
     /// CFI, airplane single-engine.
     case airplaneSingleEngine
     
@@ -340,8 +340,8 @@ public enum FlightInstructorCategory: Comparable, CustomStringConvertible {
 }
 
 /// A rating on a flight instructor certificate.
-public enum FlightInstructorRating: Comparable, Hashable, CustomStringConvertible {
-    
+public enum FlightInstructorRating: Comparable, Hashable, CustomStringConvertible, Sendable {
+
     /**
      A rating for an aircraft category.
      
@@ -385,7 +385,7 @@ public enum FlightInstructorRating: Comparable, Hashable, CustomStringConvertibl
 }
 
 /// A rating for an aircraft maintenance technician certificate.
-public enum MechanicRating: Comparable, Hashable, CustomStringConvertible {
+public enum MechanicRating: Comparable, Hashable, CustomStringConvertible, Sendable {
     
     /// Airframe rating.
     case airframe
@@ -402,8 +402,8 @@ public enum MechanicRating: Comparable, Hashable, CustomStringConvertible {
 }
 
 /// A rating for a ground instructor certificate.
-public enum GroundInstructorRating: Comparable, Hashable, CustomStringConvertible {
-    
+public enum GroundInstructorRating: Comparable, Hashable, CustomStringConvertible, Sendable {
+
     /// Ground instructor, basic.
     case basic
     
@@ -423,8 +423,8 @@ public enum GroundInstructorRating: Comparable, Hashable, CustomStringConvertibl
 }
 
 /// A rating for a light sport repairman certificate.
-public enum RepairmanLightSportRating: Comparable, Hashable, CustomStringConvertible {
-    
+public enum RepairmanLightSportRating: Comparable, Hashable, CustomStringConvertible, Sendable {
+
     /// Maintenance rating.
     case maintenance
     
@@ -440,8 +440,8 @@ public enum RepairmanLightSportRating: Comparable, Hashable, CustomStringConvert
 }
 
 /// A certificate issued to a person by the FAA.
-public enum Certificate: CustomStringConvertible {
-    
+public enum Certificate: CustomStringConvertible, Sendable {
+
     /**
      A pilot certificate issued under FAR 61 subparts C through G.
      
@@ -568,8 +568,8 @@ public enum Certificate: CustomStringConvertible {
 }
 
 /// A street address belonging to an airman.
-public struct Address: CustomStringConvertible {
-    
+public struct Address: CustomStringConvertible, Sendable {
+
     /// The first line of the street address.
     public var street1: String?
     
@@ -632,8 +632,8 @@ public struct Address: CustomStringConvertible {
 }
 
 /// Classes for aviation medical certificates.
-public enum MedicalClass: CustomStringConvertible {
-    
+public enum MedicalClass: CustomStringConvertible, Sendable {
+
     /// A first-class medical certificate issued under FAR 67 subpart B.
     case first
     
@@ -654,8 +654,8 @@ public enum MedicalClass: CustomStringConvertible {
 }
 
 /// An aviation medical certificate issued under FAR 67.
-public enum Medical: CustomStringConvertible {
-    
+public enum Medical: CustomStringConvertible, Sendable {
+
     /**
      A first-, second-, or third-class medical issued under FAR 67 subparts B
      through D.
@@ -686,8 +686,8 @@ public enum Medical: CustomStringConvertible {
 }
 
 /// A person holding one or more FAA-issued certificates.
-public struct Airman: Identifiable, CustomDebugStringConvertible {
-    
+public struct Airman: Identifiable, CustomDebugStringConvertible, Sendable {
+
     /// A unique, FAA-assigned identifier for the airman.
     public let id: String
     
