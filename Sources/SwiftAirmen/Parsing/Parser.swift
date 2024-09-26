@@ -1,5 +1,4 @@
 import Foundation
-import Dispatch
 import CSV
 
 /**
@@ -17,7 +16,7 @@ import CSV
  You can use ``Downloader`` to download the CSV file automatically. See
  <doc:GettingStarted> for an example.
  */
-public class Parser {
+final public class Parser: Sendable {
     typealias ParseCallback = ((_ paeser: CSVParser) throws -> Airman?)
     typealias ParseResultCallback = (_ result: Array<Airman>) -> Void
     
@@ -44,22 +43,18 @@ public class Parser {
      
      - Parameter error: The parsing error that occurred.
      */
-    public typealias ErrorCallback = (_ error: Error) -> Void
+    public typealias ErrorCallback = @Sendable (_ error: Error) -> Void
     
     /**
      Callback used to report progress durinbg an asynchronous parsing operation.
      
      - Parameter progress: The progress of the parsing operation.
      */
-    public typealias ProgressCallback = (Progress) -> Void
+    public typealias ProgressCallback = @Sendable (Progress) -> Void
     
     /// The directory that the parser will look for CSV files in.
     public let directory: URL
-    
-    /// The GCD queue that will be used for parsing operations.
-    public var queue = DispatchQueue(label: "codes.tim.SwiftAirmen", qos: .background, attributes: [.concurrent])
-    private let airmenSemaphore = DispatchSemaphore(value: 1)
-    
+
     /**
      Creates a new instance.
      
@@ -81,7 +76,7 @@ public class Parser {
     }
     
     /// A CSV file within an airman database distribution to parse.
-    public enum File: String, CaseIterable {
+    public enum File: String, CaseIterable, Sendable {
         
         /// Parse the `PILOT_BASIC.csv` file.
         case pilotBasic = "PILOT_BASIC.csv"
@@ -102,4 +97,70 @@ public class Parser {
         .pilotCert: PilotCertRowParser.self,
         .nonPilotCert: NonPilotCertRowParser.self
     ]
+
+    /**
+     Parses all airmen records in one or more files. Errors do not stop parsing;
+     they are given to you via `errorCallback` and the row is skipped.
+
+     - Parameter files: The files to parse. This array should be unique,
+     otherwise parsing will be unnecessarily slower.
+     - Parameter progress: Create an instance of ``AsyncProgress`` and pass it
+     here if you wish to track parsing progress.
+     - Parameter errorCallback: Called when an error occurs during row parsing.
+     Parsing does not halt.
+     - Returns: A dictionary mapping airman identifiers to their records.
+     */
+    public func parse(files: Array<File> = File.allCases,
+                      progress: AsyncProgress?,
+                      errorCallback: @escaping ErrorCallback) async throws -> AirmanDictionary {
+        let db = await withThrowingTaskGroup(of: Void.self, returning: AirmanDatabase.self) { group in
+            let db = AirmanDatabase()
+
+            for file in files {
+                group.addTask {
+                    let rowParserType = Self.rowParser[file]!
+                    let rowParser = rowParserType.init()
+
+                    let airmen = try await self.parse(file: file, parseCallback: {
+                        try rowParser.parse(parser: $0)
+                    }, progress: progress, errorCallback: errorCallback)
+                    for try await airman in airmen {
+                        await db.append(airman: airman)
+                    }
+                }
+            }
+
+            return db
+        }
+
+        return await db.merged()
+    }
+
+    private func parse(file: File,
+                       parseCallback: @escaping ParseCallback,
+                       progress: AsyncProgress?,
+                       errorCallback: @escaping ErrorCallback) async throws -> AirmanSequence {
+        let url = self.url(for: file)
+        let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
+        let total = try countLines(in: url)
+        if let progress = progress { await progress.update(file: file, total: total) }
+
+        return AirmanSequence(parseCallback: parseCallback, parser: parser, file: file, progress: progress)
+    }
+
+    private struct AirmanSequence: AsyncSequence, AsyncIteratorProtocol {
+        typealias Element = Airman
+
+        let parseCallback: ParseCallback
+        let parser: CSVParser
+        let file: File
+        let progress: AsyncProgress?
+
+        func makeAsyncIterator() -> Self { self }
+
+        func next() async throws -> Airman? {
+            await progress?.increment(file: file)
+            return try parseCallback(parser)
+        }
+    }
 }

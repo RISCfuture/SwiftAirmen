@@ -1,38 +1,55 @@
 import Foundation
-import Dispatch
 import Progress
 import SwiftAirmen
 
-class DebouncedProgress {
+actor DebouncedProgress {
     private var progressBar: ProgressBar? = nil
     var progress: SwiftAirmen.Progress?
-    
-    private static let queue = DispatchQueue(label: "codes.tim.SwiftAirmen.DebouncedProgress", qos: .userInteractive)
-    private var timer: DispatchSourceTimer? = nil
-    
-    func start() {
-        timer = DispatchSource.makeTimerSource(queue: Self.queue)
-        timer!.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            guard let progress = self.progress else { return }
-            
-            if self.progressBar == nil || self.progressBar!.count != progress.total {
-                self.progressBar = .init(count: Int(progress.total))
-            }
-            
-            self.progressBar!.setValue(Int(progress.completed))
-            
-            if progress.isFinished { self.timer?.cancel() }
+    private var progressTask: Task<Void, Never>?
+
+    func setProgress(_ progress: SwiftAirmen.Progress) { self.progress = progress }
+
+    private func updateProgressBar() async {
+        guard let progress = self.progress else { return }
+
+        let total = await progress.total
+        if progressBar == nil || progressBar!.count != total {
+            progressBar = await .init(count: Int(progress.total))
         }
-        
-        timer!.schedule(deadline: .now(), repeating: 1.0, leeway: .seconds(1))
-        timer!.resume()
+
+        await self.progressBar?.setValue(Int(progress.completed))
     }
-    
+
+    func start() {
+        progressTask?.cancel()
+
+        progressTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                while true {
+                    try Task.checkCancellation()
+
+                    await self.updateProgressBar()
+
+                    let isFinished = await progress?.isFinished ?? false
+                    if isFinished { break }
+                    try await Task.sleep(for: .seconds(1))
+                }
+            } catch is CancellationError {
+                // let task end
+            } catch {
+                var stderr = StandardError()
+                print(error.localizedDescription, to: &stderr)
+                // let task end
+            }
+        }
+    }
+
     func stop() {
         if var progressBar = progressBar {
             progressBar.setValue(progressBar.count)
         }
-        timer?.cancel()
+        progressTask?.cancel()
+        progressTask = nil
     }
 }

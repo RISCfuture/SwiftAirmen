@@ -1,12 +1,11 @@
-// swift-tools-version:5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version:6.0
 
 import PackageDescription
 
 let package = Package(
     name: "SwiftAirmen",
     defaultLocalization: "en",
-    platforms: [.macOS(.v13), .iOS(.v16), .watchOS(.v9), .tvOS(.v16)],
+    platforms: [.macOS(.v13), .iOS(.v16), .watchOS(.v9), .tvOS(.v16), .visionOS(.v1)],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -28,7 +27,8 @@ let package = Package(
             dependencies: [
                 .product(name: "CSV", package: "csv.swift"),
                 "Zip"
-            ]),
+            ],
+            resources: [.process("Localizable.xcstrings")]),
         .testTarget(
             name: "SwiftAirmenTests",
             dependencies: ["SwiftAirmen"]),
@@ -40,6 +40,6 @@ let package = Package(
                 .product(name: "Progress", package: "Progress.swift")
             ])
     ],
-    swiftLanguageVersions: [.v5]
+    swiftLanguageModes: [.v5, .v6]
 )
 
