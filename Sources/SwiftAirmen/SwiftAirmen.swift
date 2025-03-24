@@ -597,32 +597,16 @@ public struct Address: CustomStringConvertible, Sendable {
     
     /// The "[city], [state]" portion of the address, formatted as such.
     public var cityState: String? {
-        if let city = city {
-            if let state = state {
-                return "\(city), \(state)"
-            } else {
-                return city
-            }
-        } else if let state = state {
-            return state
-        } else {
-            return nil
-        }
+        city.map { city in
+            state.map { "\(city), \($0)" } ?? city
+        } ?? state
     }
     
     /// The "[city], [state]  [ZIP]" portion of the address, formatted as such.
     public var cityStateZip: String? {
-        if let cityState = cityState {
-            if let zipCode = zipCode {
-                return "\(cityState)  \(zipCode)"
-            } else {
-                return cityState
-            }
-        } else  if let zipCode = zipCode {
-            return zipCode
-        } else {
-            return nil
-        }
+        cityState.map { cityState in
+            zipCode.map { "\(cityState)  \($0)" } ?? cityState
+        } ?? zipCode
     }
     
     /// The full address in human-readable format.
@@ -717,19 +701,9 @@ public struct Airman: Identifiable, CustomDebugStringConvertible, Sendable {
     
     /// The airman's full name.
     public var name: String? {
-        if let first = firstName {
-            if let last = lastName {
-                return "\(first) \(last)"
-            } else {
-                return first
-            }
-        } else {
-            if let last = lastName {
-                return last
-            } else {
-                return nil
-            }
-        }
+        firstName.map { first in
+            lastName.map { "\(first) \($0)" } ?? first
+        } ?? lastName
     }
     
     public var debugDescription: String {

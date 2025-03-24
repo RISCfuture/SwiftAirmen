@@ -19,13 +19,13 @@ import Foundation
 public actor AsyncProgress {
     private var totals = Dictionary<Parser.File, Int64>() {
         didSet {
-            if let callback = callback { callback(progress) }
+            if let callback { callback(progress) }
         }
     }
     
     private var counts = Dictionary<Parser.File, Int64>() {
         didSet {
-            if let callback = callback { callback(progress) }
+            if let callback { callback(progress) }
         }
     }
     
@@ -73,9 +73,9 @@ public actor AsyncProgress {
     
     func update(file: Parser.File, completed: Int64? = nil, total: Int64? = nil) {
         if counts.keys.contains(file) {
-            if let completed = completed { counts[file] = completed }
-            if let total = total { totals[file] = total }
-        } else if let total = total {
+            if let completed { counts[file] = completed }
+            if let total { totals[file] = total }
+        } else if let total {
             totals[file] = total
             counts[file] = completed ?? 0
         }

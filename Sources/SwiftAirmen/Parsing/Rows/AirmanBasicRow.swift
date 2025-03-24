@@ -32,14 +32,12 @@ struct AirmanBasicRow: Decodable {
         zipCode = trim(try container.decode(String.self))
         country = trim(try container.decode(String.self))
         region = trim(try container.decode(String.self))
-        
-        if let medClassStr = trim(try container.decodeIfPresent(String.self)) {
+
+        medicalClass = try trim(try container.decodeIfPresent(String.self)).map { medClassStr in
             guard let medicalClass = MedicalClass(rawValue: medClassStr) else {
                 throw Errors.unknownMedicalClass(medClassStr, uniqueID: uniqueID)
             }
-            self.medicalClass = medicalClass
-        } else {
-            self.medicalClass = nil
+            return medicalClass
         }
         
         medicalDate = try parseDate(try container.decodeIfPresent(String.self))

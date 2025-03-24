@@ -46,7 +46,7 @@ actor DebouncedProgress {
     }
 
     func stop() {
-        if var progressBar = progressBar {
+        if var progressBar {
             progressBar.setValue(progressBar.count)
         }
         progressTask?.cancel()

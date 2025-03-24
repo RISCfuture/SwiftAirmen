@@ -143,7 +143,7 @@ final public class Parser: Sendable {
         let url = self.url(for: file)
         let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
         let total = try countLines(in: url)
-        if let progress = progress { await progress.update(file: file, total: total) }
+        if let progress { await progress.update(file: file, total: total) }
 
         return AirmanSequence(parseCallback: parseCallback, parser: parser, file: file, progress: progress)
     }

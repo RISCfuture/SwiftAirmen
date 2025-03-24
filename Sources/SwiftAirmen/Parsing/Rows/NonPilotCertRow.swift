@@ -19,22 +19,17 @@ struct NonPilotCertRow: Decodable {
         guard let typeStr = trim(try container.decode(String.self)) else {
             throw Errors.certificateTypeNotGiven(uniqueID: uniqueID)
         }
-        guard let type = CertificateType(rawValue: typeStr) else {
-            throw Errors.unknownCertificateType(typeStr, uniqueID: uniqueID)
-            
-        }
-        self.type = type
+        type = try CertificateType(rawValue: typeStr)
+            .orThrow(error: Errors.unknownCertificateType(typeStr, uniqueID: uniqueID))
         
-        if let levelStr = trim(try container.decode(String.self)) {
+        level = try trim(try container.decode(String.self)).map { levelStr in
             guard case .rigger = type else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
             }
             guard let level = Level.Rigger(rawValue: levelStr) else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
             }
-            self.level = .rigger(level)
-        } else {
-            self.level = nil
+            return .rigger(level)
         }
         
         expirationDate = try parseDate(try container.decode(String.self))

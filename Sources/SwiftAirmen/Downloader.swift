@@ -111,7 +111,7 @@ public class Downloader {
         var data = Data(capacity: Int(total))
         for try await byte in bytes {
             data.append(byte)
-            if let progressCallback = progressCallback {
+            if let progressCallback {
                 progressCallback(.init(Int64(data.count), of: total))
             }
         }
