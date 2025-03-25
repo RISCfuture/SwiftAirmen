@@ -18,10 +18,10 @@ struct AirmanBasicRow: Decodable {
     var medicalExpirationDate: DateComponents?
     var basicMedCourseDate: DateComponents?
     var basicMedCMECDate: DateComponents?
-    
+
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        
+
         uniqueID = try container.decode(String.self)
         firstName = trim(try container.decode(String.self))
         lastName = trim(try container.decode(String.self))
@@ -39,13 +39,13 @@ struct AirmanBasicRow: Decodable {
             }
             return medicalClass
         }
-        
+
         medicalDate = try parseDate(try container.decodeIfPresent(String.self))
         medicalExpirationDate = try parseDate(try container.decodeIfPresent(String.self))
         basicMedCourseDate = try parseDate(try container.decodeIfPresent(String.self))
         basicMedCMECDate = try parseDate(try container.decodeIfPresent(String.self))
     }
-    
+
     enum MedicalClass: String {
         case first = "1"
         case second = "2"

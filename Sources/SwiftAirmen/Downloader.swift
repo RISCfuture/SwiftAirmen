@@ -23,12 +23,12 @@ public class Downloader {
 
     private static let urlFormat = "https://registry.faa.gov/database/CS%{M}%{Y}.zip"
     private static let calendar = Calendar(identifier: .gregorian)
-    
+
     private let date: Date
     let progressCallback: ProgressCallback?
     let session = URLSession(configuration: .ephemeral)
     let workingDirectory: URL
-    
+
     /**
      Creates a new instance that will download airmen data for a given date.
      
@@ -49,7 +49,7 @@ public class Downloader {
                                 appropriateFor: FileManager.default.temporaryDirectory,
                                 create: true)
     }
-    
+
     func dataURL() -> URL {
         let components = Self.calendar.dateComponents([.month, .year], from: date)
         guard let month = components.month,
@@ -58,13 +58,13 @@ public class Downloader {
         }
         let monthStr = String(format: "%02d", month)
         let yearStr = String(format: "%04d", year)
-        
+
         let url = Self.urlFormat.replacingOccurrences(of: "%{M}", with: monthStr)
             .replacingOccurrences(of: "%{Y}", with: yearStr)
-        
+
         return URL(string: url)!
     }
-    
+
     func zipfileLocation() -> URL {
         if #available(macOS 13.0, *) {
             return workingDirectory.appending(component: zipfileName(), directoryHint: .notDirectory)
@@ -72,7 +72,7 @@ public class Downloader {
             return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: false)
         }
     }
-    
+
     func folderLocation() -> URL {
         if #available(macOS 13.0, *) {
             return workingDirectory.appending(component: folderName(), directoryHint: .isDirectory)
@@ -80,9 +80,9 @@ public class Downloader {
             return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: true)
         }
     }
-    
+
     private func zipfileName() -> String { dataURL().lastPathComponent }
-    
+
     private func folderName() -> String { dataURL().deletingPathExtension().lastPathComponent }
 
     /**
@@ -103,7 +103,7 @@ public class Downloader {
         guard let response = response as? HTTPURLResponse else {
             throw Errors.networkError(request: request, response: response)
         }
-        guard response.statusCode/100 == 2 else {
+        guard response.statusCode / 100 == 2 else {
             throw Errors.networkError(request: request, response: response)
         }
 
@@ -131,5 +131,3 @@ public class Downloader {
         }
     }
 }
-
-

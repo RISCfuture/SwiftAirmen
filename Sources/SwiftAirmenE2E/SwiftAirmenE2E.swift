@@ -1,5 +1,5 @@
-import Foundation
 import ArgumentParser
+import Foundation
 @preconcurrency import Progress
 
 @main
@@ -7,7 +7,7 @@ struct SwiftAirmenE2E: AsyncParsableCommand {
     @Option(name: .long,
             help: "The directory where data will be downloaded and unzipped.",
             completion: .directory,
-            transform: { URL(filePath: $0) })
+            transform: { .init(filePath: $0) })
     var workingDirectory = Process().currentDirectoryURL!
 
     func run() async throws {

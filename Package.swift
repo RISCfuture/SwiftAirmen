@@ -10,7 +10,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "SwiftAirmen",
-            targets: ["SwiftAirmen"]),
+            targets: ["SwiftAirmen"])
     ],
     dependencies: [
         .package(url: "https://github.com/RISCfuture/csv.swift.git", branch: "master"),
@@ -42,4 +42,3 @@ let package = Package(
     ],
     swiftLanguageModes: [.v5, .v6]
 )
-

@@ -2,7 +2,7 @@ import Foundation
 
 extension Sequence {
     func indexed<T>(by key: (Element) -> T,
-                    onDuplicateKey: OnDuplicateKeyAction<Element> = .abort) -> Dictionary<T, Element> {
+                    onDuplicateKey: OnDuplicateKeyAction<Element> = .abort) -> [T: Element] {
         reduce(into: [:]) { dict, element in
             let k = key(element)
             if dict.keys.contains(k) {
@@ -28,11 +28,8 @@ enum OnDuplicateKeyAction<Element> {
 
 extension Optional {
     func orThrow(error: Error) throws -> Wrapped {
-        if let value = self {
-            return value
-        } else {
-            throw error
-        }
+        if let self { return self }
+        throw error
     }
 }
 

@@ -8,20 +8,20 @@ struct NonPilotCertRow: Decodable {
     var level: Level?
     var expirationDate: DateComponents?
     var ratings = Set<Rating>()
-    
+
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        
+
         uniqueID = try container.decode(String.self)
         firstName = trim(try container.decode(String.self))
         lastName = trim(try container.decode(String.self))
-        
+
         guard let typeStr = trim(try container.decode(String.self)) else {
             throw Errors.certificateTypeNotGiven(uniqueID: uniqueID)
         }
         type = try CertificateType(rawValue: typeStr)
             .orThrow(error: Errors.unknownCertificateType(typeStr, uniqueID: uniqueID))
-        
+
         level = try trim(try container.decode(String.self)).map { levelStr in
             guard case .rigger = type else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
@@ -31,9 +31,9 @@ struct NonPilotCertRow: Decodable {
             }
             return .rigger(level)
         }
-        
+
         expirationDate = try parseDate(try container.decode(String.self))
-        
+
         let config = TypeDecodingConfig(uniqueID: uniqueID, certType: type)
         for _ in 1...11 {
             guard let rating = try container.decode(Rating?.self, configuration: config) else {
@@ -42,12 +42,12 @@ struct NonPilotCertRow: Decodable {
             self.ratings.insert(rating)
         }
     }
-    
+
     struct TypeDecodingConfig {
         let uniqueID: String
         let certType: CertificateType
     }
-    
+
     enum CertificateType: String {
         case groundInstructor = "G"
         case mechanic = "M"
@@ -60,28 +60,28 @@ struct NonPilotCertRow: Decodable {
         case navigator = "N"
         case navigatorLessee = "J"
     }
-    
+
     enum Level {
         case rigger(_ level: Rigger)
-        
+
         enum Rigger: String {
             case master = "U"
             case senior = "W"
         }
     }
-    
+
     enum Rating: DecodableWithConfiguration, Hashable {
         typealias DecodingConfiguration = TypeDecodingConfig
-        
+
         case mechanic(_ rating: Mechanic)
         case groundInstructor(_ rating: GroundInstructor)
         case repairmanLightSport(_ rating: RepairmanLightSport)
         case rigger(_ rating: Rigger, level: Level.Rigger)
-        
+
         init(from decoder: Decoder, configuration: DecodingConfiguration) throws {
             let container = try decoder.singleValueContainer()
             let ratingStr = trim(try container.decode(String.self))!
-            
+
             switch configuration.certType {
                 case .mechanic:
                     let parts = ratingStr.split(separator: "/")
@@ -124,7 +124,7 @@ struct NonPilotCertRow: Decodable {
                     guard parts.count == 2 else {
                         throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
                     }
-                    
+
                     guard let level = Level.Rigger(rawValue: String(parts[0])) else {
                         throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: configuration.uniqueID)
                     }
@@ -136,23 +136,23 @@ struct NonPilotCertRow: Decodable {
                     throw Errors.unknownRating(ratingStr, uniqueID: configuration.uniqueID)
             }
         }
-        
+
         enum Mechanic: String {
             case airframe = "AIRFR"
             case powerplant = "POWER"
         }
-        
+
         enum GroundInstructor: String {
             case basic = "BASIC"
             case advanced = "ADV"
             case instrument = "INST"
         }
-        
+
         enum RepairmanLightSport: String {
             case maintenance = "MAINT"
             case inspection = "INSPT"
         }
-        
+
         enum Rigger: String {
             case back = "BACK"
             case chest = "CHEST"

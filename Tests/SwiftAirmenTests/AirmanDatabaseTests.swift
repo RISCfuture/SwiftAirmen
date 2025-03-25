@@ -1,5 +1,5 @@
-import XCTest
 @testable import SwiftAirmen
+import XCTest
 
 final class SwiftAirmenTests: XCTestCase {
     func testExample() throws {

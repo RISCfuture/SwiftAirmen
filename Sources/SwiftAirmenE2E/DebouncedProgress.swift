@@ -3,7 +3,7 @@ import Progress
 import SwiftAirmen
 
 actor DebouncedProgress {
-    private var progressBar: ProgressBar? = nil
+    private var progressBar: ProgressBar?
     var progress: SwiftAirmen.Progress?
     private var progressTask: Task<Void, Never>?
 
@@ -29,7 +29,7 @@ actor DebouncedProgress {
                 while true {
                     try Task.checkCancellation()
 
-                    await self.updateProgressBar()
+                    await updateProgressBar()
 
                     let isFinished = await progress?.isFinished ?? false
                     if isFinished { break }

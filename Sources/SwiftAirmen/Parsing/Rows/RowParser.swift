@@ -1,9 +1,9 @@
-import Foundation
 import CSV
+import Foundation
 
 protocol RowParser {
     associatedtype RowType: Decodable
-    
+
     init()
     func parseRow(_ row: RowType) throws -> Airman
 }
@@ -15,7 +15,6 @@ extension RowParser {
     }
 }
 
-
 // MARK: - BasicRowParser
 
 final class BasicRowParser: RowParser {
@@ -23,7 +22,7 @@ final class BasicRowParser: RowParser {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
-        
+
         if airman.address == nil { airman.address = Address() }
         airman.address!.street1 = row.street1
         airman.address!.street2 = row.street2
@@ -32,13 +31,13 @@ final class BasicRowParser: RowParser {
         airman.address!.zipCode = row.zipCode
         airman.address!.country = row.country
         airman.address!.region = row.region
-        if (airman.address!.isEmpty) { airman.address = nil }
-        
+        if airman.address!.isEmpty { airman.address = nil }
+
         if let medClass = row.medicalClass {
             guard let medicalDate = row.medicalDate else {
                 throw Errors.medicalWithoutDate(uniqueID: row.uniqueID)
             }
-            
+
             switch medClass {
                 case .first:
                     airman.medical = .FAA(.first,
@@ -64,7 +63,7 @@ final class BasicRowParser: RowParser {
                 airman.medical = nil
             }
         }
-        
+
         return airman
     }
 }
@@ -76,7 +75,7 @@ final class PilotCertRowParser: RowParser {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
-        
+
         switch row.type {
             case .pilot:
                 guard let rowLevel = row.level else {
@@ -86,14 +85,14 @@ final class PilotCertRowParser: RowParser {
                     fatalError("Certificate type and level mismatch")
                 }
                 let level = self.convertLevel(rowPilotLevel)
-                
+
                 var ratings = Set<PilotRating>()
                 var centerlineThrust = false
                 for rowRating in row.ratings {
                     guard case let .pilot(rowPilotRating, ratingLevel) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
-                    
+
                     switch rowPilotRating {
                         case .airplaneSingleEngineLand:
                             ratings.insert(.categoryClass(.airplaneSingleEngineLand, level: self.convertLevel(ratingLevel)))
@@ -133,11 +132,11 @@ final class PilotCertRowParser: RowParser {
                         case .sport: break
                     }
                 }
-                
+
                 for rowRating in row.typeRatings {
                     ratings.insert(.type(rowRating.type, level: self.convertLevel(rowRating.level)))
                 }
-                
+
                 airman.certificates.append(.pilot(level: level, ratings: ratings, centerlineThrustOnly: centerlineThrust))
             case .authorizedAircraftInstructor:
                 airman.certificates.append(.authorizedAircraftInstructor)
@@ -214,10 +213,10 @@ final class PilotCertRowParser: RowParser {
                 }
                 airman.certificates.append(.flightEngineerForeign(ratings: ratings))
         }
-        
+
         return airman
     }
-    
+
     private func convertLevel(_ level: PilotCertRow.Level.Pilot) -> PilotLevel {
         switch level {
             case .airlineTransport: return .airlineTransport
@@ -237,7 +236,7 @@ final class NonPilotCertRowParser: RowParser {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
-        
+
         switch row.type {
             case .groundInstructor:
                 var ratings = Set<GroundInstructorRating>()
@@ -294,7 +293,7 @@ final class NonPilotCertRowParser: RowParser {
                     case .master: level = .master
                     case .senior: level = .senior
                 }
-                
+
                 var ratings = Set<RiggerRating>()
                 for rowRating in row.ratings {
                     guard case let .rigger(riggerRating, riggerLevel) = rowRating else {
@@ -305,7 +304,7 @@ final class NonPilotCertRowParser: RowParser {
                         case .master: ratingLevel = .master
                         case .senior: ratingLevel = .senior
                     }
-                    
+
                     switch riggerRating {
                         case .back: ratings.insert(.back(level: ratingLevel))
                         case .chest: ratings.insert(.chest(level: ratingLevel))
@@ -321,7 +320,7 @@ final class NonPilotCertRowParser: RowParser {
             case .navigatorLessee:
                 airman.certificates.append(.navigatorLessee)
         }
-        
+
         return airman
     }
 }

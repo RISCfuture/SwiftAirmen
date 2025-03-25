@@ -10,35 +10,35 @@ public enum Errors: Swift.Error {
      - Parameter string: The unparsed date.
      */
     case invalidDate(_ string: String)
-    
+
     /**
      A certificate did not have a type.
      
      - Parameter uniqueID: The airmen record ID.
      */
     case certificateTypeNotGiven(uniqueID: String)
-    
+
     /**
      A certificate did not have a level.
      
      - Parameter uniqueID: The airmen record ID.
      */
     case levelNotGiven(uniqueID: String)
-    
+
     /**
      An expiring certificate did not have an expiration date.
      
      - Parameter uniqueID: The airmen record ID.
      */
     case expirationDateNotGiven(uniqueID: String)
-    
+
     /**
      A medical certificate did not have an expiration date.
      
      - Parameter uniqueID: The airmen record ID.
      */
     case medicalWithoutDate(uniqueID: String)
-    
+
     /**
      An unknown medical class was encountered.
      
@@ -46,7 +46,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case unknownMedicalClass(_ class: String, uniqueID: String)
-    
+
     /**
      An unknown certificate type was encountered.
      
@@ -54,7 +54,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case unknownCertificateType(_ type: String, uniqueID: String)
-    
+
     /**
      An unknown certificate rating was encountered.
      
@@ -62,7 +62,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case unknownRating(_ rating: String, uniqueID: String)
-    
+
     /**
      An unknown certificate level was encountered.
      
@@ -70,7 +70,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case unknownCertificateLevel(_ level: String, uniqueID: String)
-    
+
     /**
      An unknown rating level was encountered.
      
@@ -78,7 +78,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case unknownRatingLevel(_ level: String, uniqueID: String)
-    
+
     /**
      An improperly-formatted rating was encountered.
      
@@ -86,7 +86,7 @@ public enum Errors: Swift.Error {
      - Parameter uniqueID: The airmen record ID.
      */
     case invalidRating(_ rating: String, uniqueID: String)
-    
+
     /**
      An error when attempting to download the airmen CSV data.
      
@@ -105,7 +105,7 @@ extension Errors: LocalizedError {
                 return String(localized: "Failed to parse airmen data.", comment: "error description")
         }
     }
-    
+
     public var failureReason: String? {
         switch self {
             case let .invalidDate(date):
@@ -133,12 +133,11 @@ extension Errors: LocalizedError {
             case let .networkError(request, response):
                 if let response = response as? HTTPURLResponse {
                     return String(localized: "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
-                } else {
-                    return String(localized: "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
                 }
+                return String(localized: "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
         }
     }
-    
+
     public var recoverySuggestion: String? {
         switch self {
             case let .networkError(request, _):

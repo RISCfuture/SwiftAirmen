@@ -1,5 +1,5 @@
-import Foundation
 import CSV
+import Foundation
 
 /**
  Parses an airman certification database into memory. The database must be
@@ -16,17 +16,17 @@ import CSV
  You can use ``Downloader`` to download the CSV file automatically. See
  <doc:GettingStarted> for an example.
  */
-final public class Parser: Sendable {
+public final class Parser: Sendable {
     typealias ParseCallback = ((_ paeser: CSVParser) throws -> Airman?)
     typealias ParseResultCallback = (_ result: Array<Airman>) -> Void
-    
+
     /**
      Return value for all `parse` methods. A dictionary mapping an airman's
      unique ID (such as `A4760216`) to the ``Airman`` record, which contains all
      data loaded for that airman.
      */
-    public typealias AirmanDictionary = Dictionary<String, Airman>
-    
+    public typealias AirmanDictionary = [String: Airman]
+
     /**
      Callback used for ``parse(files:callback:progressCallback:errorCallback:)``;
      called when parsing is finished.
@@ -35,7 +35,7 @@ final public class Parser: Sendable {
      records.
      */
     public typealias ResultCallback = (_ airmen: AirmanDictionary) -> Void
-    
+
     /**
      Callback used for all `parse` methods; called when an error occurs during
      parsing. Parsing does not stop; the error is reported and parsing
@@ -44,14 +44,21 @@ final public class Parser: Sendable {
      - Parameter error: The parsing error that occurred.
      */
     public typealias ErrorCallback = @Sendable (_ error: Error) -> Void
-    
+
     /**
      Callback used to report progress durinbg an asynchronous parsing operation.
      
      - Parameter progress: The progress of the parsing operation.
      */
     public typealias ProgressCallback = @Sendable (Progress) -> Void
-    
+
+    static let rowParser: [File: any RowParser.Type] = [
+        .pilotBasic: BasicRowParser.self,
+        .nonpilotBasic: BasicRowParser.self,
+        .pilotCert: PilotCertRowParser.self,
+        .nonPilotCert: NonPilotCertRowParser.self
+    ]
+
     /// The directory that the parser will look for CSV files in.
     public let directory: URL
 
@@ -63,40 +70,17 @@ final public class Parser: Sendable {
     public init(directory: URL) {
         self.directory = directory
     }
-    
+
     func countLines(in url: URL) throws -> Int64 {
         let data = try String(contentsOf: url, encoding: .ascii)
         var count: Int64 = 0
         data.enumerateLines { _, _ in count += 1 }
         return count
     }
-    
+
     func url(for file: File) -> URL {
         directory.appendingPathComponent(file.rawValue)
     }
-    
-    /// A CSV file within an airman database distribution to parse.
-    public enum File: String, CaseIterable, Sendable {
-        
-        /// Parse the `PILOT_BASIC.csv` file.
-        case pilotBasic = "PILOT_BASIC.csv"
-        
-        /// Parse the `NONPILOT_BASIC.csv` file.
-        case nonpilotBasic = "NONPILOT_BASIC.csv"
-        
-        /// Parse the `PILOT_CERT.csv` file.
-        case pilotCert = "PILOT_CERT.csv"
-        
-        /// Parse the `NONPILOT_CERT.csv` file.
-        case nonPilotCert = "NONPILOT_CERT.csv"
-    }
-    
-    static let rowParser: Dictionary<File, any RowParser.Type> = [
-        .pilotBasic: BasicRowParser.self,
-        .nonpilotBasic: BasicRowParser.self,
-        .pilotCert: PilotCertRowParser.self,
-        .nonPilotCert: NonPilotCertRowParser.self
-    ]
 
     /**
      Parses all airmen records in one or more files. Errors do not stop parsing;
@@ -110,7 +94,7 @@ final public class Parser: Sendable {
      Parsing does not halt.
      - Returns: A dictionary mapping airman identifiers to their records.
      */
-    public func parse(files: Array<File> = File.allCases,
+    public func parse(files: [File] = File.allCases,
                       progress: AsyncProgress?,
                       errorCallback: @escaping ErrorCallback) async throws -> AirmanDictionary {
         let db = await withThrowingTaskGroup(of: Void.self, returning: AirmanDatabase.self) { group in
@@ -121,8 +105,8 @@ final public class Parser: Sendable {
                     let rowParserType = Self.rowParser[file]!
                     let rowParser = rowParserType.init()
 
-                    let airmen = try await self.parse(file: file, parseCallback: {
-                        try rowParser.parse(parser: $0)
+                    let airmen = try await self.parse(file: file, parseCallback: { parser in
+                        try rowParser.parse(parser: parser)
                     }, progress: progress, errorCallback: errorCallback)
                     for try await airman in airmen {
                         await db.append(airman: airman)
@@ -139,13 +123,29 @@ final public class Parser: Sendable {
     private func parse(file: File,
                        parseCallback: @escaping ParseCallback,
                        progress: AsyncProgress?,
-                       errorCallback: @escaping ErrorCallback) async throws -> AirmanSequence {
+                       errorCallback _: @escaping ErrorCallback) async throws -> AirmanSequence {
         let url = self.url(for: file)
         let parser = try CSVParser(url: url, delimiter: ",", hasHeader: true, header: nil)
         let total = try countLines(in: url)
         if let progress { await progress.update(file: file, total: total) }
 
         return AirmanSequence(parseCallback: parseCallback, parser: parser, file: file, progress: progress)
+    }
+
+    /// A CSV file within an airman database distribution to parse.
+    public enum File: String, CaseIterable, Sendable {
+
+        /// Parse the `PILOT_BASIC.csv` file.
+        case pilotBasic = "PILOT_BASIC.csv"
+
+        /// Parse the `NONPILOT_BASIC.csv` file.
+        case nonpilotBasic = "NONPILOT_BASIC.csv"
+
+        /// Parse the `PILOT_CERT.csv` file.
+        case pilotCert = "PILOT_CERT.csv"
+
+        /// Parse the `NONPILOT_CERT.csv` file.
+        case nonPilotCert = "NONPILOT_CERT.csv"
     }
 
     private struct AirmanSequence: AsyncSequence, AsyncIteratorProtocol {
