@@ -6,9 +6,8 @@ import Zip
  https://www.faa.gov/licenses_certificates/airmen_certification/releasable_airmen_download/
  for more information about the structure and contents of the file.
  
- If you wish to use `async`/`await` syntax, use the ``download()`` method, which
- returns a file URL. Otherwise, use the ``download(callback:)`` method, to which
- you provide a callback that receives the URL.
+ Use the ``download()`` method to download the airmen database. This method uses
+ Swift's async/await and returns a file URL pointing to the extracted CSV files.
  
  The file downloaded by this class can be used by ``Parser`` to parse airmen
  records. See <doc:GettingStarted> for an example.

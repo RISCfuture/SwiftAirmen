@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.1
 
 import PackageDescription
 
@@ -13,7 +13,7 @@ let package = Package(
             targets: ["SwiftAirmen"])
     ],
     dependencies: [
-        .package(url: "https://github.com/RISCfuture/csv.swift.git", branch: "master"),
+        .package(url: "https://github.com/RISCfuture/StreamingCSV", from: "1.1.1"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
         .package(url: "https://github.com/marmelroy/Zip.git", from: "2.1.0"),
@@ -25,13 +25,14 @@ let package = Package(
         .target(
             name: "SwiftAirmen",
             dependencies: [
-                .product(name: "CSV", package: "csv.swift"),
+                .product(name: "StreamingCSV", package: "StreamingCSV"),
                 "Zip"
             ],
             resources: [.process("Localizable.xcstrings")]),
         .testTarget(
             name: "SwiftAirmenTests",
-            dependencies: ["SwiftAirmen"]),
+            dependencies: ["SwiftAirmen"],
+            resources: [.copy("TestResources")]),
         .executableTarget(
             name: "SwiftAirmenE2E",
             dependencies: [

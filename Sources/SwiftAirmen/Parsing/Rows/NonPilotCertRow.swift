@@ -1,29 +1,34 @@
 import Foundation
+import StreamingCSV
 
-struct NonPilotCertRow: Decodable {
-    var uniqueID: String
-    var firstName: String?
-    var lastName: String?
-    var type: CertificateType
-    var level: Level?
-    var expirationDate: DateComponents?
-    var ratings = Set<Rating>()
+@CSVRowDecoderBuilder
+struct NonPilotCertRow {
+    @Field var uniqueID: String
+    @Field var firstName: String?
+    @Field var lastName: String?
+    @Field var typeRaw: String
+    @Field var levelRaw: String?
+    @Field var expirationDateRaw: String?
+    @Fields var ratingStrings: [String]  // All remaining fields are ratings
 
-    init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-
-        uniqueID = try container.decode(String.self)
-        firstName = trim(try container.decode(String.self))
-        lastName = trim(try container.decode(String.self))
-
-        guard let typeStr = trim(try container.decode(String.self)) else {
-            throw Errors.certificateTypeNotGiven(uniqueID: uniqueID)
+    // Parsed values
+    var type: CertificateType {
+        get throws {
+            let trimmed = typeRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let type = CertificateType(rawValue: trimmed) else {
+                throw Errors.unknownCertificateType(trimmed, uniqueID: uniqueID)
+            }
+            return type
         }
-        type = try CertificateType(rawValue: typeStr)
-            .orThrow(error: Errors.unknownCertificateType(typeStr, uniqueID: uniqueID))
+    }
 
-        level = try trim(try container.decode(String.self)).map { levelStr in
-            guard case .rigger = type else {
+    var level: Level? {
+        get throws {
+            guard let levelStr = levelRaw?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !levelStr.isEmpty else { return nil }
+
+            let certType = try self.type
+            guard case .rigger = certType else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
             }
             guard let level = Level.Rigger(rawValue: levelStr) else {
@@ -31,21 +36,27 @@ struct NonPilotCertRow: Decodable {
             }
             return .rigger(level)
         }
-
-        expirationDate = try parseDate(try container.decode(String.self))
-
-        let config = TypeDecodingConfig(uniqueID: uniqueID, certType: type)
-        for _ in 1...11 {
-            guard let rating = try container.decode(Rating?.self, configuration: config) else {
-                continue
-            }
-            self.ratings.insert(rating)
-        }
     }
 
-    struct TypeDecodingConfig {
-        let uniqueID: String
-        let certType: CertificateType
+    var expirationDate: DateComponents? {
+        guard let raw = expirationDateRaw else { return nil }
+        return DateComponents(csvString: raw)
+    }
+
+    var ratings: Set<Rating> {
+        get throws {
+            var result = Set<Rating>()
+            let certType = try self.type
+
+            for ratingStr in ratingStrings {
+                let trimmed = ratingStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+
+                let rating = try Rating.parse(from: trimmed, certType: certType, uniqueID: uniqueID)
+                result.insert(rating)
+            }
+            return result
+        }
     }
 
     enum CertificateType: String {
@@ -53,111 +64,110 @@ struct NonPilotCertRow: Decodable {
         case mechanic = "M"
         case controlTowerOperator = "T"
         case repairman = "R"
-        case repairmanExperimental = "I"
+        case repairmanExperimental = "Q"
         case repairmanLightSport = "L"
         case rigger = "W"
         case dispatcher = "D"
         case navigator = "N"
-        case navigatorLessee = "J"
+        case navigatorLessee = "K"
     }
 
     enum Level {
         case rigger(_ level: Rigger)
 
         enum Rigger: String {
-            case master = "U"
-            case senior = "W"
+            case master = "M"
+            case senior = "S"
         }
     }
 
-    enum Rating: DecodableWithConfiguration, Hashable {
-        typealias DecodingConfiguration = TypeDecodingConfig
-
-        case mechanic(_ rating: Mechanic)
+    enum Rating: Hashable {
         case groundInstructor(_ rating: GroundInstructor)
+        case mechanic(_ rating: Mechanic)
         case repairmanLightSport(_ rating: RepairmanLightSport)
         case rigger(_ rating: Rigger, level: Level.Rigger)
 
-        init(from decoder: Decoder, configuration: DecodingConfiguration) throws {
-            let container = try decoder.singleValueContainer()
-            let ratingStr = trim(try container.decode(String.self))!
+        static func parse(from ratingStr: String, certType: CertificateType, uniqueID: String) throws -> Self {
+            switch certType {
+            case .groundInstructor:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = GroundInstructor(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .groundInstructor(rating)
 
-            switch configuration.certType {
-                case .mechanic:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = Mechanic(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .mechanic(rating)
-                case .groundInstructor:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = GroundInstructor(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .groundInstructor(rating)
-                case .repairmanLightSport:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = RepairmanLightSport(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .repairmanLightSport(rating)
-                case .rigger:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
+            case .mechanic:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = Mechanic(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .mechanic(rating)
 
-                    guard let level = Level.Rigger(rawValue: String(parts[0])) else {
-                        throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = Rigger(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .rigger(rating, level: level)
-                default:
-                    throw Errors.unknownRating(ratingStr, uniqueID: configuration.uniqueID)
+            case .repairmanLightSport:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = RepairmanLightSport(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .repairmanLightSport(rating)
+
+            case .rigger:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard let level = Level.Rigger(rawValue: String(parts[0])) else {
+                    throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = Rigger(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .rigger(rating, level: level)
+
+            default:
+                // Other certificate types don't have ratings in this format
+                throw Errors.unknownRating(ratingStr, uniqueID: uniqueID)
             }
         }
 
-        enum Mechanic: String {
-            case airframe = "AIRFR"
-            case powerplant = "POWER"
+        enum GroundInstructor: String {
+            case basic = "BGI"
+            case advanced = "AGI"
+            case instrument = "IGI"
         }
 
-        enum GroundInstructor: String {
-            case basic = "BASIC"
-            case advanced = "ADV"
-            case instrument = "INST"
+        enum Mechanic: String {
+            case airframe = "A"
+            case powerplant = "P"
         }
 
         enum RepairmanLightSport: String {
-            case maintenance = "MAINT"
-            case inspection = "INSPT"
+            case inspection = "I"
+            case maintenance = "M"
         }
 
         enum Rigger: String {
-            case back = "BACK"
-            case chest = "CHEST"
-            case seat = "SEAT"
-            case lap = "LAP"
+            case back = "B"
+            case chest = "C"
+            case lap = "L"
+            case seat = "S"
         }
     }
-    }
+}

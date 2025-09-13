@@ -94,6 +94,13 @@ public enum Errors: Swift.Error {
      - Parameter response: The failed response (may be an `HTTPURLResponse`).
      */
     case networkError(request: URLRequest, response: URLResponse)
+
+    /**
+     A file was not found.
+
+     - Parameter url: The URL to the file.
+     */
+    case fileNotFound(url: URL)
 }
 
 extension Errors: LocalizedError {
@@ -135,6 +142,8 @@ extension Errors: LocalizedError {
                     return String(localized: "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
                 }
                 return String(localized: "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.", comment: "failure reason")
+            case let .fileNotFound(url):
+                return String(localized: "File not found: \(url.path())")
         }
     }
 
@@ -142,6 +151,8 @@ extension Errors: LocalizedError {
         switch self {
             case let .networkError(request, _):
                 return String(localized: "Verify that “\(request.url!.absoluteString)” is accessible via your Internet connection.", comment: "recovery suggestion")
+            case .fileNotFound:
+                return String(localized: "Verify that the file was not moved or deleted.")
             default:
                 return String(localized: "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.", comment: "recovery suggestion")
         }

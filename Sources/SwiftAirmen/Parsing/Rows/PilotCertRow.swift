@@ -1,62 +1,79 @@
 import Foundation
+import StreamingCSV
 
-struct PilotCertRow: Decodable {
-    var uniqueID: String
-    var firstName: String?
-    var lastName: String?
-    var type: CertificateType
-    var level: Level?
-    var expirationDate: DateComponents?
-    var ratings = Set<Rating>()
-    var typeRatings = Set<TypeRating>()
+@CSVRowDecoderBuilder
+struct PilotCertRow {
+    @Field var uniqueID: String
+    @Field var firstName: String?
+    @Field var lastName: String?
+    @Field var typeRaw: String
+    @Field var levelRaw: String?
+    @Field var expirationDateRaw: String?
+    @Fields(11)
+    var ratingStrings: [String]  // Up to 11 regular ratings
+    @Fields var typeRatingStrings: [String]    // Remaining fields are type ratings
 
-    init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-
-        uniqueID = try container.decode(String.self)
-        firstName = trim(try container.decode(String.self))
-        lastName = trim(try container.decode(String.self))
-
-        guard let typeStr = trim(try container.decode(String.self)) else {
-            throw Errors.certificateTypeNotGiven(uniqueID: uniqueID)
+    // Parsed values
+    var type: CertificateType {
+        get throws {
+            let trimmed = typeRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let type = CertificateType(rawValue: trimmed) else {
+                throw Errors.unknownCertificateType(trimmed, uniqueID: uniqueID)
+            }
+            return type
         }
-        guard let type = CertificateType(rawValue: typeStr) else {
-            throw Errors.unknownCertificateType(typeStr, uniqueID: uniqueID)
-        }
-        self.type = type
+    }
 
-        if let levelStr = trim(try container.decode(String.self)) {
-            guard case .pilot = type else {
+    var level: Level? {
+        get throws {
+            guard let levelStr = levelRaw?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !levelStr.isEmpty else { return nil }
+
+            let certType = try self.type
+            guard case .pilot = certType else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
             }
             guard let level = Level.Pilot(rawValue: levelStr) else {
                 throw Errors.unknownCertificateLevel(levelStr, uniqueID: uniqueID)
             }
-            self.level = .pilot(level)
-        } else {
-            self.level = nil
-        }
-
-        expirationDate = try parseDate(try container.decode(String.self))
-
-        let config = TypeDecodingConfig(uniqueID: uniqueID, certType: type)
-        for _ in 1...11 {
-            guard let rating = try container.decode(Rating?.self, configuration: config) else {
-                continue
-            }
-            self.ratings.insert(rating)
-        }
-        for _ in 1...99 {
-            guard let rating = try container.decode(TypeRating?.self, configuration: config) else {
-                continue
-            }
-            self.typeRatings.insert(rating)
+            return .pilot(level)
         }
     }
 
-    struct TypeDecodingConfig {
-        let uniqueID: String
-        let certType: CertificateType
+    var expirationDate: DateComponents? {
+        guard let raw = expirationDateRaw else { return nil }
+        return DateComponents(csvString: raw)
+    }
+
+    var ratings: Set<Rating> {
+        get throws {
+            var result = Set<Rating>()
+            let certType = try self.type
+
+            for ratingStr in ratingStrings {
+                let trimmed = ratingStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+
+                let rating = try Rating.parse(from: trimmed, certType: certType, uniqueID: uniqueID)
+                result.insert(rating)
+            }
+            return result
+        }
+    }
+
+    var typeRatings: Set<TypeRating> {
+        get throws {
+            var result = Set<TypeRating>()
+
+            for ratingStr in typeRatingStrings {
+                let trimmed = ratingStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+
+                let rating = try TypeRating.parse(from: trimmed, uniqueID: uniqueID)
+                result.insert(rating)
+            }
+            return result
+        }
     }
 
     enum CertificateType: String {
@@ -82,83 +99,83 @@ struct PilotCertRow: Decodable {
         }
     }
 
-    enum Rating: DecodableWithConfiguration, Hashable {
-        typealias DecodingConfiguration = TypeDecodingConfig
-
+    enum Rating: Hashable {
         case pilot(_ rating: Pilot, level: Level.Pilot)
         case flightInstructor(_ rating: FlightInstructor)
         case flightEngineer(_ rating: FlightEngineer)
         case flightEngineerForeign(_ rating: FlightEngineer)
         case remotePilot
 
-        init(from decoder: Decoder, configuration: DecodingConfiguration) throws {
-            let container = try decoder.singleValueContainer()
-            let ratingStr = trim(try container.decode(String.self))!
+        static func parse(from ratingStr: String, certType: CertificateType, uniqueID: String) throws -> Self {
+            switch certType {
+            case .pilot:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
 
-            switch configuration.certType {
-                case .pilot:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
+                guard let level = Level.Pilot(rawValue: String(parts[0])) else {
+                    throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = Pilot(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .pilot(rating, level: level)
 
-                    guard let level = Level.Pilot(rawValue: String(parts[0])) else {
-                        throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = Pilot(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .pilot(rating, level: level)
-                case .flightInstructor:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = FlightInstructor(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .flightInstructor(rating)
-                case .flightEngineer:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = FlightEngineer(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .flightEngineer(rating)
-                case .remotePilot:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[1] == "SUAS" else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .remotePilot
-                case .flightEngineerForeign:
-                    let parts = ratingStr.split(separator: "/")
-                    guard parts.count == 2 else {
-                        throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
-                    }
-                    guard parts[0] == configuration.certType.rawValue else {
-                        throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: configuration.uniqueID)
-                    }
-                    guard let rating = FlightEngineer(rawValue: String(parts[1])) else {
-                        throw Errors.unknownRating(String(parts[1]), uniqueID: configuration.uniqueID)
-                    }
-                    self = .flightEngineerForeign(rating)
-                default:
-                    throw Errors.unknownRating(ratingStr, uniqueID: configuration.uniqueID)
+            case .flightInstructor:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = FlightInstructor(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .flightInstructor(rating)
+
+            case .flightEngineer:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = FlightEngineer(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .flightEngineer(rating)
+
+            case .remotePilot:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard parts[1] == "SUAS" else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .remotePilot
+
+            case .flightEngineerForeign:
+                let parts = ratingStr.split(separator: "/")
+                guard parts.count == 2 else {
+                    throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
+                }
+                guard parts[0] == certType.rawValue else {
+                    throw Errors.unknownRatingLevel(String(parts[0]), uniqueID: uniqueID)
+                }
+                guard let rating = FlightEngineer(rawValue: String(parts[1])) else {
+                    throw Errors.unknownRating(String(parts[1]), uniqueID: uniqueID)
+                }
+                return .flightEngineerForeign(rating)
+
+            default:
+                throw Errors.unknownRating(ratingStr, uniqueID: uniqueID)
             }
         }
 
@@ -205,27 +222,21 @@ struct PilotCertRow: Decodable {
         }
     }
 
-    struct TypeRating: DecodableWithConfiguration, Hashable {
-        typealias DecodingConfiguration = TypeDecodingConfig
-
+    struct TypeRating: Hashable {
         var level: Level.Pilot
         var type: String
 
-        init(from decoder: Decoder, configuration: PilotCertRow.TypeDecodingConfig) throws {
-            let container = try decoder.singleValueContainer()
-            let ratingStr = trim(try container.decode(String.self))!
-
+        static func parse(from ratingStr: String, uniqueID: String) throws -> Self {
             let parts = ratingStr.split(separator: "/")
             guard parts.count == 2 else {
-                throw Errors.invalidRating(ratingStr, uniqueID: configuration.uniqueID)
+                throw Errors.invalidRating(ratingStr, uniqueID: uniqueID)
             }
 
             guard let level = Level.Pilot(rawValue: String(parts[0])) else {
-                throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: configuration.uniqueID)
+                throw Errors.unknownCertificateLevel(String(parts[0]), uniqueID: uniqueID)
             }
-            self.level = level
 
-            type = String(parts[1])
+            return Self(level: level, type: String(parts[1]))
         }
     }
-    }
+}

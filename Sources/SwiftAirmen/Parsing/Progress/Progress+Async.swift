@@ -5,6 +5,10 @@ import Foundation
  ``Parser/parse(files:progress:errorCallback:)``. You can query the
  ``completed`` and ``total`` properties on a timer to update your UI.
  
+ Progress is tracked based on the total number of bytes across all CSV files
+ being parsed, providing a unified progress view when processing multiple files
+ in parallel.
+ 
  Example:
  
  ``` swift
@@ -17,13 +21,13 @@ import Foundation
  ```
  */
 public actor AsyncProgress {
-    private var totals = [Parser.File: Int64]() {
+    private var totalBytes: Int64 = 0 {
         didSet {
             if let callback { callback(progress) }
         }
     }
 
-    private var counts = [Parser.File: Int64]() {
+    private var completedBytes: Int64 = 0 {
         didSet {
             if let callback { callback(progress) }
         }
@@ -33,11 +37,11 @@ public actor AsyncProgress {
     /// changes.
     public var callback: Parser.ProgressCallback?
 
-    /// The expected total number of records to parse.
-    public var total: Int64 { totals.values.reduce(0, +) }
+    /// The expected total number of bytes to parse.
+    public var total: Int64 { totalBytes }
 
-    /// The number of records parsed so far.
-    public var completed: Int64 { counts.values.reduce(0, +) }
+    /// The number of bytes parsed so far.
+    public var completed: Int64 { completedBytes }
 
     /// `true` when the operation is completed.
     public var isFinished: Bool { completed == total }
@@ -71,18 +75,11 @@ public actor AsyncProgress {
         self.callback = callback
     }
 
-    func update(file: Parser.File, completed: Int64? = nil, total: Int64? = nil) {
-        if counts.keys.contains(file) {
-            if let completed { counts[file] = completed }
-            if let total { totals[file] = total }
-        } else if let total {
-            totals[file] = total
-            counts[file] = completed ?? 0
-        }
+    func setTotalBytes(_ bytes: Int64) {
+        totalBytes = bytes
     }
 
-    func increment(file: Parser.File) {
-        guard counts.keys.contains(file) else { return }
-        counts[file] = counts[file]! + 1
+    func addBytes(_ bytes: Int64) {
+        completedBytes = min(completedBytes + bytes, totalBytes)
     }
 }

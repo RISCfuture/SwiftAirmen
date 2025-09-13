@@ -437,7 +437,7 @@ public enum RepairmanLightSportRating: Comparable, Hashable, CustomStringConvert
 }
 
 /// A certificate issued to a person by the FAA.
-public enum Certificate: CustomStringConvertible, Sendable {
+public enum Certificate: CustomStringConvertible, Sendable, Hashable {
 
     /**
      A pilot certificate issued under FAR 61 subparts C through G.
@@ -635,7 +635,7 @@ public enum MedicalClass: CustomStringConvertible, Sendable {
 }
 
 /// An aviation medical certificate issued under FAR 67.
-public enum Medical: CustomStringConvertible, Sendable {
+public enum Medical: CustomStringConvertible, Sendable, Equatable {
 
     /**
      A first-, second-, or third-class medical issued under FAR 67 subparts B
@@ -711,8 +711,14 @@ public struct Airman: Identifiable, CustomDebugStringConvertible, Sendable {
         var newAirman = Self(id: id)
         newAirman.firstName = other.firstName ?? firstName
         newAirman.lastName = other.lastName ?? lastName
+        newAirman.address = other.address ?? address
         newAirman.medical = other.medical ?? medical
-        newAirman.certificates = other.certificates + certificates
+
+        // Merge certificates by combining into a Set to avoid duplicates
+        var certificateSet = Set(certificates)
+        certificateSet.formUnion(other.certificates)
+        newAirman.certificates = Array(certificateSet)
+
         return newAirman
     }
 }

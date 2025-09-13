@@ -39,8 +39,7 @@ let downloader = SwiftAirmen.Downloader()
 let directoryURL = try await downloader.download()
 ```
 
-`Downloader` supports both traditional callback-style syntax as well as
-`async` syntax. See the class documentation for more examples.
+`Downloader` uses Swift's async/await for asynchronous operations.
 
 To parse airmen records, create an instance of `Parser` and give it the path
 to your downloaded CSV records:
@@ -52,12 +51,10 @@ let airmen = try await parser.parse(errorCallback: { error in
 })
 ```
 
-`parse` executes asynchronously and returns a dictionary mapping airman unique
-IDs to the `Airman` record for that airman. Any parsing errors that occur are
-given to you via `errorCallback`. The row is skipped but parsing is not aborted.
-
-`Parser` supports traditional callback-style syntax, Combine publisher syntax,
-and `async` syntax. See the class documentation for more examples.
+The `parse` method executes asynchronously using Swift's async/await and returns
+a dictionary mapping airman unique IDs to the `Airman` record for that airman.
+Any parsing errors that occur are given to you via `errorCallback`. The row is
+skipped but parsing is not aborted.
 
 An `Airman` record contains information about the airman and their
 certificates:

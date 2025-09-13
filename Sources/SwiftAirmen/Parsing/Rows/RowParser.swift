@@ -1,23 +1,23 @@
-import CSV
 import Foundation
+import StreamingCSV
 
-protocol RowParser {
-    associatedtype RowType: Decodable
+protocol RowParser: Sendable {
+    associatedtype RowType: CSVDecodableRow
 
     init()
     func parseRow(_ row: RowType) throws -> Airman
 }
 
 extension RowParser {
-    func parse(parser: CSVParser) throws -> Airman? {
-        guard let row = try parser.next(as: RowType.self) else { return nil }
+    func parse(fields: [String]) throws -> Airman? {
+        guard let row = RowType(from: fields) else { return nil }
         return try parseRow(row)
     }
 }
 
 // MARK: - BasicRowParser
 
-final class BasicRowParser: RowParser {
+final class BasicRowParser: RowParser, @unchecked Sendable {
     func parseRow(_ row: AirmanBasicRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
@@ -70,15 +70,15 @@ final class BasicRowParser: RowParser {
 
 // MARK: - PilotCertRowParser
 
-final class PilotCertRowParser: RowParser {
+final class PilotCertRowParser: RowParser, @unchecked Sendable {
     func parseRow(_ row: PilotCertRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
 
-        switch row.type {
+        switch try row.type {
             case .pilot:
-                guard let rowLevel = row.level else {
+                guard let rowLevel = try row.level else {
                     throw Errors.levelNotGiven(uniqueID: row.uniqueID)
                 }
                 guard case let .pilot(rowPilotLevel) = rowLevel else {
@@ -88,7 +88,7 @@ final class PilotCertRowParser: RowParser {
 
                 var ratings = Set<PilotRating>()
                 var centerlineThrust = false
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .pilot(rowPilotRating, ratingLevel) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -133,7 +133,7 @@ final class PilotCertRowParser: RowParser {
                     }
                 }
 
-                for rowRating in row.typeRatings {
+                for rowRating in try row.typeRatings {
                     ratings.insert(.type(rowRating.type, level: self.convertLevel(rowRating.level)))
                 }
 
@@ -142,7 +142,7 @@ final class PilotCertRowParser: RowParser {
                 airman.certificates.append(.authorizedAircraftInstructor)
             case .flightInstructor:
                 var ratings = Set<FlightInstructorRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .flightInstructor(rowCFIRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -186,7 +186,7 @@ final class PilotCertRowParser: RowParser {
                 airman.certificates.append(.remotePilot)
             case .flightEngineer:
                 var ratings = Set<FlightEngineerRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .flightEngineer(engRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -201,7 +201,7 @@ final class PilotCertRowParser: RowParser {
                 airman.certificates.append(.flightEngineerLessee)
             case .flightEngineerForeign:
                 var ratings = Set<FlightEngineerRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .flightEngineerForeign(engRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -231,16 +231,16 @@ final class PilotCertRowParser: RowParser {
 
 // MARK: - NonPilotCertRowParser
 
-final class NonPilotCertRowParser: RowParser {
+final class NonPilotCertRowParser: RowParser, @unchecked Sendable {
     func parseRow(_ row: NonPilotCertRow) throws -> Airman {
         var airman = Airman(id: row.uniqueID)
         airman.firstName = row.firstName
         airman.lastName = row.lastName
 
-        switch row.type {
+        switch try row.type {
             case .groundInstructor:
                 var ratings = Set<GroundInstructorRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .groundInstructor(instructorRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -253,7 +253,7 @@ final class NonPilotCertRowParser: RowParser {
                 airman.certificates.append(.groundInstructor(ratings: ratings))
             case .mechanic:
                 var ratings = Set<MechanicRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .mechanic(mechRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -271,7 +271,7 @@ final class NonPilotCertRowParser: RowParser {
                 airman.certificates.append(.repairmanExperimental)
             case .repairmanLightSport:
                 var ratings = Set<RepairmanLightSportRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .repairmanLightSport(repairmanRating) = rowRating else {
                         fatalError("Certificate and rating type mismatch")
                     }
@@ -283,7 +283,7 @@ final class NonPilotCertRowParser: RowParser {
                 airman.certificates.append(.repairmanLightSport(ratings: ratings))
             case .rigger:
                 let level: RiggerLevel
-                guard let rowLevel = row.level else {
+                guard let rowLevel = try row.level else {
                     throw Errors.levelNotGiven(uniqueID: row.uniqueID)
                 }
                 guard case let .rigger(riggerLevel) = rowLevel else {
@@ -295,7 +295,7 @@ final class NonPilotCertRowParser: RowParser {
                 }
 
                 var ratings = Set<RiggerRating>()
-                for rowRating in row.ratings {
+                for rowRating in try row.ratings {
                     guard case let .rigger(riggerRating, riggerLevel) = rowRating else {
                         fatalError("Certificate and rating mismatch")
                     }

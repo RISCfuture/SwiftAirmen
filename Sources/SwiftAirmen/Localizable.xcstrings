@@ -7,6 +7,9 @@
     "Failed to parse airmen data." : {
       "comment" : "error description"
     },
+    "File not found: %@" : {
+
+    },
     "HTTP response %lld received when downloading from “%@”." : {
       "comment" : "failure reason",
       "localizations" : {
@@ -107,6 +110,9 @@
     },
     "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen." : {
       "comment" : "recovery suggestion"
+    },
+    "Verify that the file was not moved or deleted." : {
+
     }
   },
   "version" : "1.0"

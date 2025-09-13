@@ -1,0 +1,6 @@
+UNIQUE ID,FIRST NAME,LAST NAME,TYPE,LEVEL
+This is not a valid CSV row
+A0000099,BROKEN,ROW,P
+"Unclosed quote,TEST,USER
+,,,,,Extra fields here,,,,,,,,,,,
+A0000100,MISSING,FIELDS
