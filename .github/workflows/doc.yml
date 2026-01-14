@@ -34,6 +34,24 @@ jobs:
            --disable-indexing \
            --transform-for-static-hosting \
            --hosting-base-path SwiftAirmen
+      - name: Create root redirect
+        run: |
+          cat > ./docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta http-equiv="refresh" content="0; url=/SwiftAirmen/documentation/swiftairmen/">
+              <title>SwiftAirmen Documentation</title>
+              <script>
+                  window.location.replace("/SwiftAirmen/documentation/swiftairmen/");
+              </script>
+          </head>
+          <body>
+              <p>Redirecting to <a href="/SwiftAirmen/documentation/swiftairmen/">SwiftAirmen Documentation</a>...</p>
+          </body>
+          </html>
+          EOF
       - name: Upload
         uses: actions/upload-pages-artifact@v3
         with:
