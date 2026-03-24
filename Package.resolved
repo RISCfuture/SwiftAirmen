@@ -1,5 +1,5 @@
 {
-  "originHash" : "f76777c8cda3ec0c189a1539928ca88ad0d2a9dabc45fecb93e4b517d25a2344",
+  "originHash" : "f60d8cb2a7440774a58c073613321e7c43fe3a16e9996f566236b7c0165f8cc0",
   "pins" : [
     {
       "identity" : "progress.swift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RISCfuture/StreamingCSV",
       "state" : {
-        "revision" : "4538df94633a0161063ccdcbeafe1c0fb816ba49",
-        "version" : "1.1.1"
+        "branch" : "main",
+        "revision" : "5de5b9a900c470e1da7e0c78c9cbc0e5de3c441e"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "309a47b2b1d9b5e991f36961c983ecec72275be3",
-        "version" : "1.6.1"
+        "revision" : "626b5b7b2f45e1b0b1c6f4a309296d1d21d7311b",
+        "version" : "1.7.1"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",
       "state" : {
-        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
-        "version" : "1.4.5"
+        "revision" : "e977f65879f82b375a044c8837597f690c067da6",
+        "version" : "1.4.6"
       }
     },
     {

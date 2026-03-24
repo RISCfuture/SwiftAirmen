@@ -135,37 +135,37 @@ extension Errors: LocalizedError {
           localized: "No medical expiration date for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .unknownMedicalClass(let `class`, let uniqueID):
+      case let .unknownMedicalClass(`class`, uniqueID):
         return String(
           localized: "Unknown medical class “\(`class`)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .unknownCertificateType(let type, let uniqueID):
+      case let .unknownCertificateType(type, uniqueID):
         return String(
           localized: "Unknown certificate type “\(type)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .unknownRating(let rating, let uniqueID):
+      case let .unknownRating(rating, uniqueID):
         return String(
           localized: "Unknown rating “\(rating)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .unknownCertificateLevel(let level, let uniqueID):
+      case let .unknownCertificateLevel(level, uniqueID):
         return String(
           localized: "Unknown certificate level “\(level)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .unknownRatingLevel(let level, let uniqueID):
+      case let .unknownRatingLevel(level, uniqueID):
         return String(
           localized: "Unknown rating level “\(level)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .invalidRating(let string, let uniqueID):
+      case let .invalidRating(string, uniqueID):
         return String(
           localized: "Improperly formatted rating “\(string)” for record \(uniqueID)",
           comment: "failure reason"
         )
-      case .networkError(let request, let response):
+      case let .networkError(request, response):
         if let response = response as? HTTPURLResponse {
           return String(
             localized:

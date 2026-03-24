@@ -253,16 +253,16 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
   /// A human-readable description of the rating.
   public var description: String {
     switch self {
-      case .categoryClass(let categoryClass, let level):
+      case let .categoryClass(categoryClass, level):
         return "\(categoryClass) (\(level))"
-      case .instrument(let category): return "IFR-\(category)"
-      case .type(let type, let level): return "\(type) (\(level))"
+      case let .instrument(category): return "IFR-\(category)"
+      case let .type(type, level): return "\(type) (\(level))"
     }
   }
 
   public static func < (lhs: Self, rhs: Self) -> Bool {
     switch lhs {
-      case .categoryClass(let lhsCat, let lhsLevel):
+      case let .categoryClass(lhsCat, lhsLevel):
         guard case .categoryClass(let rhsCat, let rhsLevel) = rhs else { return true }
         if lhsCat == rhsCat { return lhsLevel < rhsLevel }
         return lhsCat < rhsCat
@@ -272,7 +272,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
           case .instrument(let rhsCat): return lhsCat < rhsCat
           case .type: return true
         }
-      case .type(let lhsType, let lhsLevel):
+      case let .type(lhsType, lhsLevel):
         guard case .type(let rhsType, let rhsLevel) = rhs else { return false }
         if lhsType == rhsType { return lhsLevel < rhsLevel }
         return lhsType < rhsType
@@ -281,7 +281,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
 
   func descriptionForLevel(_ level: PilotLevel, centerlineThrustOnly: Bool) -> String {
     switch self {
-      case .categoryClass(let categoryClass, let ratingLevel):
+      case let .categoryClass(categoryClass, ratingLevel):
         switch categoryClass {
           case .airplaneMultiEngineLand, .airplaneMultiEngineSea:
             if centerlineThrustOnly {
@@ -294,7 +294,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
             if ratingLevel == level { return categoryClass.description }
             return description
         }
-      case .type(let type, let ratingLevel):
+      case let .type(type, ratingLevel):
         if ratingLevel == level { return type }
         return description
       default: return description
@@ -535,7 +535,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
   /// applicable).
   public var description: String {
     switch self {
-      case .pilot(let level, let ratings, let centerlineThrustOnly):
+      case let .pilot(level, ratings, centerlineThrustOnly):
         return
           "\(level) (\(ratings.sorted().map { $0.descriptionForLevel(level, centerlineThrustOnly: centerlineThrustOnly) }.joined(separator: ", ")))"
       case .flightInstructor(let ratings, _):
@@ -556,7 +556,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
       case .repairmanExperimental: return "Repairman (EAB)"
       case .repairmanLightSport(let ratings):
         return "Repairman (LSA, \(ratings.sorted().map(\.description).joined(separator: "&")))"
-      case .rigger(let level, let ratings):
+      case let .rigger(level, ratings):
         return
           "Rigger (\(level), \(ratings.sorted().map { $0.descriptionForLevel(level) }.joined(separator: ", ")))"
       case .dispatcher: return "Dispatcher"
