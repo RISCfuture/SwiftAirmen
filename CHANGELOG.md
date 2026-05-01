@@ -1,5 +1,20 @@
 # Change Log
 
+## [2.1.0] - 2026-05-01
+
+### Changed
+
+- CSV parsing now backed by [StreamingCSV](https://github.com/RISCfuture/StreamingCSV) for improved performance
+- Migrated localized strings to Swift string catalogs
+
+### Internal
+
+- Updated to Swift 6 and Swift 6.2; CI matrix standardized to Swift 6.0–6.2 on macOS 14–15
+- Added swift-format and SwiftLint
+- Modernized Optional syntax
+- Updated GitHub Actions and Package dependencies
+- Added documentation root redirect
+
 ## [3.0.0]
 
 Updated minimum Swift version to 6.1.
