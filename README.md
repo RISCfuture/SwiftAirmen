@@ -1,5 +1,15 @@
 # SwiftAirmen: FAA Airman Database parser
 
+[![CI](https://github.com/RISCfuture/SwiftAirmen/actions/workflows/ci.yml/badge.svg)](https://github.com/RISCfuture/SwiftAirmen/actions/workflows/ci.yml)
+
+[![Documentation](https://github.com/RISCfuture/SwiftAirmen/actions/workflows/doc.yml/badge.svg)](https://riscfuture.github.io/SwiftAirmen/)
+
+[![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
+
+[![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-blue.svg)](https://swift.org)
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 SwiftAirmen parses the
 [FAA Airmen Certification Database](https://www.faa.gov/licenses_certificates/airmen_certification/releasable_airmen_download/)
 into native Swift structs that are tightly defined with no data weirdness. You
