@@ -4,12 +4,6 @@ actor AirmanDatabase {
   private var airmen = [Airman]()
 
   @discardableResult
-  func append(airmen: [Airman]) -> Self {
-    self.airmen.append(contentsOf: airmen)
-    return self
-  }
-
-  @discardableResult
   func append(airman: Airman) -> Self {
     self.airmen.append(airman)
     return self

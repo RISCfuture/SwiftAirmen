@@ -39,11 +39,6 @@ struct NonPilotCertRow {
     }
   }
 
-  var expirationDate: DateComponents? {
-    guard let raw = expirationDateRaw else { return nil }
-    return DateComponents(csvString: raw)
-  }
-
   var ratings: Set<Rating> {
     get throws {
       var result = Set<Rating>()
