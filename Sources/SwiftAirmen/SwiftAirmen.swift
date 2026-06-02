@@ -147,28 +147,28 @@ public enum RiggerRating: Comparable, Hashable, CustomStringConvertible, Sendabl
 
   /**
    A back type rating.
-  
+
    - Parameter level: The rating level.
    */
   case back(level: RiggerLevel)
 
   /**
    A back type rating.
-  
+
    - Parameter level: The rating level.
    */
   case chest(level: RiggerLevel)
 
   /**
    A back type rating.
-  
+
    - Parameter level: The rating level.
    */
   case seat(level: RiggerLevel)
 
   /**
    A back type rating.
-  
+
    - Parameter level: The rating level.
    */
   case lap(level: RiggerLevel)
@@ -229,7 +229,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
 
   /**
    A rating for a category and class of aircraft.
-  
+
    - Parameter categoryClass: The aircraft category and class.
    - Parameter level: The certificate level for the rating.
    */
@@ -237,14 +237,14 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
 
   /**
    An instrument rating for an aircraft category.
-  
+
    - Parameter category: The aircraft category.
    */
   case instrument(_ category: InstrumentCategory)
 
   /**
    A type rating for a turbine or heavy aircraft.
-  
+
    - Parameter type: The ICAO type code for the aircraft.
    - Parameter level: The certificate level for the rating.
    */
@@ -263,7 +263,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
   public static func < (lhs: Self, rhs: Self) -> Bool {
     switch lhs {
       case let .categoryClass(lhsCat, lhsLevel):
-        guard case .categoryClass(let rhsCat, let rhsLevel) = rhs else { return true }
+        guard case let .categoryClass(rhsCat, rhsLevel) = rhs else { return true }
         if lhsCat == rhsCat { return lhsLevel < rhsLevel }
         return lhsCat < rhsCat
       case .instrument(let lhsCat):
@@ -273,7 +273,7 @@ public enum PilotRating: Comparable, Hashable, CustomStringConvertible, Sendable
           case .type: return true
         }
       case let .type(lhsType, lhsLevel):
-        guard case .type(let rhsType, let rhsLevel) = rhs else { return false }
+        guard case let .type(rhsType, rhsLevel) = rhs else { return false }
         if lhsType == rhsType { return lhsLevel < rhsLevel }
         return lhsType < rhsType
     }
@@ -341,14 +341,14 @@ public enum FlightInstructorRating: Comparable, Hashable, CustomStringConvertibl
 
   /**
    A rating for an aircraft category.
-  
+
    - Parameter category: The aircraft category.
    */
   case category(_ category: FlightInstructorCategory)
 
   /**
    A flight instructor instrument rating.
-  
+
    - Parameter category: The aircraft category.
    */
   case instrument(_ category: InstrumentCategory)
@@ -441,7 +441,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
 
   /**
    A pilot certificate issued under FAR 61 subparts C through G.
-  
+
    - Parameter level: The certificate level, which should be the highest level
                       of any pilot certificate rating.
    - Parameter ratings: The pilot ratings associated with this certificate.
@@ -453,7 +453,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
 
   /**
    A flight instructor certificate (CFI) issued under FAR 61 subpart H.
-  
+
    - Parameter ratings: The instructor ratings associated with this
                         certificate.
    - Parameter expirationDate: The date this certificate expires.
@@ -468,14 +468,14 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
 
   /**
    A ground instructor (GI) certificate issued under FAR 61 subpart I.
-  
+
    - Parameter ratings: The ratings associated with this certificate.
    */
   case groundInstructor(ratings: Set<GroundInstructorRating>)
 
   /**
    A flight engineer (FE) certificate issued under FAR 63 subpart B.
-  
+
    - Parameter ratings: The ratings associated with this certificate.
    */
   case flightEngineer(ratings: Set<FlightEngineerRating>)
@@ -487,7 +487,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
   /**
    A flight engineer (special purpose -- foreign) certificate issued under
    FAR 63.23(b)(1).
-  
+
    - Parameter ratings: The ratings associated with this certificate.
    */
   case flightEngineerForeign(ratings: Set<FlightEngineerRating>)
@@ -495,7 +495,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
   /**
    An aviation maintenance technician (AMT) certificate issued under FAR 65
    subpart D.
-  
+
    - Parameter ratings: The ratings associated with this certificate.
    */
   case mechanic(ratings: Set<MechanicRating>)
@@ -515,7 +515,7 @@ public enum Certificate: CustomStringConvertible, Sendable, Hashable {
 
   /**
    A parachute rigger certificate issued under FAR 65 subpart F.
-  
+
    - Parameter level: The certificate level (master or senior).
    - Parameter ratings: The ratings associated with this certificate.
    */
@@ -643,7 +643,7 @@ public enum Medical: CustomStringConvertible, Sendable, Equatable {
   /**
    A first-, second-, or third-class medical issued under FAR 67 subparts B
    through D.
-  
+
    - Parameter class: The class of medical certificate.
    - Parameter date: The date of issuance.
    - Parameter expirationDate: The date the medical completely expires.
@@ -652,7 +652,7 @@ public enum Medical: CustomStringConvertible, Sendable, Equatable {
 
   /**
    A BasicMed qualification under FAR 68.
-  
+
    - Parameter courseDate: The date that the FAR 68.3 course was completed.
    - Parameter expirationDate: The date the qualification expires.
    - Parameter CMECDate: The date the comprehensive medical examination

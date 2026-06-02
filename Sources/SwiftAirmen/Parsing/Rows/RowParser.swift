@@ -97,7 +97,7 @@ final class PilotCertRowParser: RowParser, @unchecked Sendable {
         var ratings = Set<PilotRating>()
         var centerlineThrust = false
         for rowRating in try row.ratings {
-          guard case .pilot(let rowPilotRating, let ratingLevel) = rowRating else {
+          guard case let .pilot(rowPilotRating, ratingLevel) = rowRating else {
             fatalError("Certificate and rating type mismatch")
           }
 
@@ -328,7 +328,7 @@ final class NonPilotCertRowParser: RowParser, @unchecked Sendable {
 
         var ratings = Set<RiggerRating>()
         for rowRating in try row.ratings {
-          guard case .rigger(let riggerRating, let riggerLevel) = rowRating else {
+          guard case let .rigger(riggerRating, riggerLevel) = rowRating else {
             fatalError("Certificate and rating mismatch")
           }
           let ratingLevel: RiggerLevel

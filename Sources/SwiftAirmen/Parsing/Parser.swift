@@ -31,14 +31,14 @@ public final class Parser: Sendable {
    Callback used for all `parse` methods; called when an error occurs during
    parsing. Parsing does not stop; the error is reported and parsing
    continues.
-  
+
    - Parameter error: The parsing error that occurred.
    */
   public typealias ErrorCallback = @Sendable (_ error: Error) -> Void
 
   /**
    Callback used to report progress during parsing operations.
-  
+
    - Parameter progress: The progress of the parsing operation.
    */
   public typealias ProgressCallback = @Sendable (Progress) -> Void
@@ -55,7 +55,7 @@ public final class Parser: Sendable {
 
   /**
    Creates a new instance.
-  
+
    - Parameter directory: The directory containing the CSV files.
    */
   public init(directory: URL) {
@@ -83,13 +83,13 @@ public final class Parser: Sendable {
 
   /**
    Parses all airmen records in one or more files using parallel processing.
-  
+
    Files are processed concurrently, and each file uses internal parallel chunk
    processing for maximum performance. Progress is tracked as a unified total
    across all files based on bytes processed.
-  
+
    Errors do not stop parsing; they are given to you via `errorCallback` and the row is skipped.
-  
+
    - Parameter files: The files to parse. This array should be unique,
    otherwise parsing will be unnecessarily slower.
    - Parameter progress: Create an instance of ``AsyncProgress`` and pass it
