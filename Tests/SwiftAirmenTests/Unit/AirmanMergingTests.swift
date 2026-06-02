@@ -61,7 +61,7 @@ struct AirmanMergingTests {
     #expect(merged.address?.street2 == "Apt 2B")
     #expect(merged.address?.city == "NewCity")
 
-    if case .FAA(let medClass, let date, _) = merged.medical {
+    if case let .FAA(medClass, date, _) = merged.medical {
       #expect(medClass == .first)
       #expect(date.year == 2024)
     } else {

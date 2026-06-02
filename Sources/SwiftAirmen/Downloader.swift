@@ -28,7 +28,7 @@ public class Downloader {
 
   /**
    Creates a new instance that will download airmen data for a given date.
-  
+
    - Parameter date: The effective date of the airmen database (default
    today). The month and year portion of this date are used to select the
    effective database edition.
@@ -93,7 +93,7 @@ public class Downloader {
   /**
    Downloads and unzips the airmen database to a directory. This directory can
    be used by ``Parser`` to return airmen records.
-  
+
    - Returns: The URL of the downloaded airmen database.
    */
   public func download() async throws -> URL {

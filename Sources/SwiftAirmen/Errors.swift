@@ -4,42 +4,42 @@ import Foundation
 public enum Errors: Swift.Error {
   /**
    A date was improperly formatted.
-  
+
    - Parameter string: The unparsed date.
    */
   case invalidDate(_ string: String)
 
   /**
    A certificate did not have a type.
-  
+
    - Parameter uniqueID: The airmen record ID.
    */
   case certificateTypeNotGiven(uniqueID: String)
 
   /**
    A certificate did not have a level.
-  
+
    - Parameter uniqueID: The airmen record ID.
    */
   case levelNotGiven(uniqueID: String)
 
   /**
    An expiring certificate did not have an expiration date.
-  
+
    - Parameter uniqueID: The airmen record ID.
    */
   case expirationDateNotGiven(uniqueID: String)
 
   /**
    A medical certificate did not have an expiration date.
-  
+
    - Parameter uniqueID: The airmen record ID.
    */
   case medicalWithoutDate(uniqueID: String)
 
   /**
    An unknown medical class was encountered.
-  
+
    - Parameter class: The unparsed medical class.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -47,7 +47,7 @@ public enum Errors: Swift.Error {
 
   /**
    An unknown certificate type was encountered.
-  
+
    - Parameter type: The unparsed certificate type.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -55,7 +55,7 @@ public enum Errors: Swift.Error {
 
   /**
    An unknown certificate rating was encountered.
-  
+
    - Parameter rating: The unparsed rating.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -63,7 +63,7 @@ public enum Errors: Swift.Error {
 
   /**
    An unknown certificate level was encountered.
-  
+
    - Parameter level: The unparsed certificate level.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -71,7 +71,7 @@ public enum Errors: Swift.Error {
 
   /**
    An unknown rating level was encountered.
-  
+
    - Parameter level: The unparsed rating level.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -79,7 +79,7 @@ public enum Errors: Swift.Error {
 
   /**
    An improperly-formatted rating was encountered.
-  
+
    - Parameter rating: The unparsed rating.
    - Parameter uniqueID: The airmen record ID.
    */
@@ -87,7 +87,7 @@ public enum Errors: Swift.Error {
 
   /**
    An error when attempting to download the airmen CSV data.
-  
+
    - Parameter request: The failed request.
    - Parameter response: The failed response (may be an `HTTPURLResponse`).
    */
@@ -95,7 +95,7 @@ public enum Errors: Swift.Error {
 
   /**
    A file was not found.
-  
+
    - Parameter url: The URL to the file.
    */
   case fileNotFound(url: URL)

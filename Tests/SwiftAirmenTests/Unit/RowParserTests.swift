@@ -28,7 +28,7 @@ struct BasicRowParserTests {
 
     let airman = try #require(try parser.parse(fields: fields))
 
-    if case .basicMed(let courseDate, _, let cmecDate) = airman.medical {
+    if case let .basicMed(courseDate, _, cmecDate) = airman.medical {
       #expect(courseDate.year == 2022)
       #expect(courseDate.month == 11)
       #expect(courseDate.day == 1)
@@ -106,7 +106,7 @@ struct PilotCertRowParserTests {
     let airman = try #require(try parser.parse(fields: fields))
 
     if let cert = airman.certificates.first,
-      case .pilot(let level, let ratings, let centerline) = cert
+      case let .pilot(level, ratings, centerline) = cert
     {
       #expect(level == .commercial)
       #expect(centerline == true)
@@ -150,7 +150,7 @@ struct PilotCertRowParserTests {
     let airman = try #require(try parser.parse(fields: fields))
 
     if let cert = airman.certificates.first,
-      case .pilot(let level, let ratings, _) = cert
+      case let .pilot(level, ratings, _) = cert
     {
       #expect(level == .airlineTransport)
       #expect(ratings.contains(.type("B737", level: .airlineTransport)))
@@ -191,7 +191,7 @@ struct PilotCertRowParserTests {
     let airman = try #require(try parser.parse(fields: fields))
 
     if let cert = airman.certificates.first,
-      case .flightInstructor(let ratings, let expirationDate) = cert
+      case let .flightInstructor(ratings, expirationDate) = cert
     {
       #expect(ratings.contains(.category(.airplaneSingleEngine)))
       #expect(ratings.contains(.category(.airplaneMultiEngine)))
@@ -261,7 +261,7 @@ struct NonPilotCertRowParserTests {
     let airman = try #require(try parser.parse(fields: fields))
 
     if let cert = airman.certificates.first,
-      case .rigger(let level, let ratings) = cert
+      case let .rigger(level, ratings) = cert
     {
       #expect(level == .master)
       #expect(ratings.contains(.back(level: .master)))

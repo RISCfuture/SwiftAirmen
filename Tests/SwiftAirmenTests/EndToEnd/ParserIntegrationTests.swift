@@ -75,7 +75,7 @@ struct ParserIntegrationTests {
     #expect(john.certificates.count == 1)
 
     if let cert = john.certificates.first,
-      case .pilot(let level, let ratings, let centerline) = cert
+      case let .pilot(level, ratings, centerline) = cert
     {
       #expect(level == .airlineTransport)
       #expect(centerline == false)
@@ -109,7 +109,7 @@ struct ParserIntegrationTests {
     // Test centerline thrust (AMELC)
     let alice = airmen["A0000004"]
     if let cert = alice?.certificates.first,
-      case .pilot(_, let ratings, let centerline) = cert
+      case let .pilot(_, ratings, centerline) = cert
     {
       #expect(centerline == true)  // AMELC sets centerline thrust flag
       #expect(ratings.contains(.categoryClass(.airplaneMultiEngineLand, level: .commercial)))
@@ -153,7 +153,7 @@ struct ParserIntegrationTests {
     // Test rigger with multiple ratings at different levels
     let henry = airmen["A0000010"]
     if let cert = henry?.certificates.first,
-      case .rigger(let level, let ratings) = cert
+      case let .rigger(level, ratings) = cert
     {
       #expect(level == .master)
       #expect(ratings.contains(.back(level: .master)))

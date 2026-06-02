@@ -34,7 +34,7 @@ struct ErrorHandlingTests {
     // Testing the error structure itself
     let error = Errors.unknownCertificateType("UNKNOWN", uniqueID: "A0000001")
 
-    if case .unknownCertificateType(let type, let uniqueID) = error {
+    if case let .unknownCertificateType(type, uniqueID) = error {
       #expect(type == "UNKNOWN")
       #expect(uniqueID == "A0000001")
     } else {
