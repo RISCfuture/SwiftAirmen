@@ -22,7 +22,7 @@ Updated minimum Swift version to 6.1.
 ### Changed
 
 - Migrated from csv.swift to StreamingCSV library for CSV parsing
-- Implemented parallel processing at two levels: concurrent file processing and 
+- Implemented parallel processing at two levels: concurrent file processing and
   parallel chunk processing within each file
 - Progress tracking now based on total bytes across all files instead of
   per-file tracking
