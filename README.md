@@ -91,7 +91,7 @@ allow you to parse a subset of the airmen certification data.
 ## Documentation
 
 Online API and tutorial documentation is available at
-https://riscfuture.github.io/SwiftAirmen/documentation/swiftairmen/
+<https://riscfuture.github.io/SwiftAirmen/documentation/swiftairmen/>
 
 DocC documentation is available, including tutorials and API documentation. For
 Xcode documentation, you can run
