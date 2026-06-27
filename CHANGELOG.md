@@ -1,5 +1,50 @@
 # Change Log
 
+## [3.0.0] - 2026-06-26
+
+### Changed (breaking)
+
+- `Parser.parse` no longer takes an `errorCallback`. It now returns the parsed
+  records together with the non-fatal errors it encountered:
+  `let (airmen, errors) = try await parser.parse()`. The `progress:` argument is
+  now optional and defaults to `nil`.
+- `Downloader` reports progress through a new `progress`
+  (`AsyncStream<Progress>`) instead of an `init` progress callback. Iterate it
+  to observe download progress.
+- `AsyncProgress` reports updates through a new `updates`
+  (`AsyncStream<Progress>`) instead of a `callback` closure; its initializer is
+  now `AsyncProgress()`.
+- `Progress` is now an immutable `Sendable` struct rather than an `actor`, so
+  reading `completed`, `total`, `percentDone`, etc. no longer requires `await`.
+
+### Changed
+
+- Migrated from csv.swift to StreamingCSV library for CSV parsing
+- Implemented parallel processing at two levels: concurrent file processing and
+  parallel chunk processing within each file
+- Progress tracking now based on total bytes across all files instead of
+  per-file tracking
+- Significant performance improvements for parsing large airman databases
+
+### Removed
+
+- Removed the `Parser.ProgressCallback`, `Parser.ErrorCallback`, and
+  `Downloader.ProgressCallback` typealiases.
+
+### Fixed
+
+- Fixed certificate deduplication issue in `mergedWith` function
+- Improved memory handling for large CSV files
+
+### Internal
+
+- Adopted the Approachable Concurrency upcoming features
+  (`NonisolatedNonsendingByDefault`, `InferIsolatedConformances`)
+- Dropped unnecessary `@unchecked Sendable` conformances from the internal row
+  parsers
+- Removed a redundant continuation wrapping the synchronous unzip step
+- Replaced NSLock-backed error collectors with returned error arrays / an actor
+
 ## [2.1.0] - 2026-05-01
 
 ### Changed
@@ -14,24 +59,6 @@
 - Modernized Optional syntax
 - Updated GitHub Actions and Package dependencies
 - Added documentation root redirect
-
-## [3.0.0]
-
-Updated minimum Swift version to 6.1.
-
-### Changed
-
-- Migrated from csv.swift to StreamingCSV library for CSV parsing
-- Implemented parallel processing at two levels: concurrent file processing and
-  parallel chunk processing within each file
-- Progress tracking now based on total bytes across all files instead of
-  per-file tracking
-- Significant performance improvements for parsing large airman databases
-
-### Fixed
-
-- Fixed certificate deduplication issue in `mergedWith` function
-- Improved memory handling for large CSV files
 
 ## [2.0.0] - 2024-04-04
 
