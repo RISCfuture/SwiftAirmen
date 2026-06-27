@@ -7,6 +7,7 @@ import Zip
 ///
 /// Use the ``download()`` method to download the airmen database. This method uses
 /// Swift's async/await and returns a file URL pointing to the extracted CSV files.
+/// Iterate the ``progress`` stream to observe download progress.
 ///
 /// The file downloaded by this class can be used by ``Parser`` to parse airmen
 /// records. See <doc:GettingStarted> for an example.
@@ -15,16 +16,17 @@ import Zip
 /// `MMYYYY`.
 public class Downloader {
 
-  /// A callback that `Downloader` uses to report progress.
-  public typealias ProgressCallback = @Sendable (Progress) -> Void
-
   private static let urlFormat = "https://registry.faa.gov/database/CS%{M}%{Y}.zip"
   private static let calendar = Calendar(identifier: .gregorian)
 
   private let date: Date
-  let progressCallback: ProgressCallback?
+  private let progressContinuation: AsyncStream<Progress>.Continuation
   let session = URLSession(configuration: .ephemeral)
   let workingDirectory: URL
+
+  /// A stream of download ``Progress`` snapshots, emitting as bytes arrive and
+  /// finishing when the download completes.
+  public let progress: AsyncStream<Progress>
 
   /**
    Creates a new instance that will download airmen data for a given date.
@@ -34,16 +36,13 @@ public class Downloader {
    effective database edition.
    - Parameter workingDirectory: The directory the file will be downloaded and
    unzipped to. Defaults to a temporary directory.
-   - Parameter progressCallback: A callback that the downloader will report
-   progress to.
    */
   public init(
     date: Date? = nil,
-    workingDirectory: URL? = nil,
-    progressCallback: ProgressCallback? = nil
+    workingDirectory: URL? = nil
   ) throws {
     self.date = date ?? Date()
-    self.progressCallback = progressCallback
+    (progress, progressContinuation) = AsyncStream<Progress>.makeStream()
     self.workingDirectory =
       try workingDirectory
       ?? FileManager.default.url(
@@ -98,10 +97,12 @@ public class Downloader {
    */
   public func download() async throws -> URL {
     let zipfile = try await _download()
-    return try await unzip(url: zipfile)
+    return try unzip(url: zipfile)
   }
 
   private func _download() async throws -> URL {
+    defer { progressContinuation.finish() }
+
     let request = URLRequest(url: dataURL())
 
     let (bytes, response) = try await session.bytes(for: request)
@@ -116,23 +117,15 @@ public class Downloader {
     var data = Data(capacity: Int(total))
     for try await byte in bytes {
       data.append(byte)
-      if let progressCallback {
-        progressCallback(.init(Int64(data.count), of: total))
-      }
+      progressContinuation.yield(.init(Int64(data.count), of: total))
     }
 
     try data.write(to: zipfileLocation())
     return zipfileLocation()
   }
 
-  private func unzip(url: URL) async throws -> URL {
-    try await withCheckedThrowingContinuation { continuation in
-      do {
-        try Zip.unzipFile(url, destination: folderLocation(), overwrite: true, password: nil)
-        continuation.resume(with: .success(folderLocation()))
-      } catch {
-        continuation.resume(with: .failure(error))
-      }
-    }
+  private func unzip(url: URL) throws -> URL {
+    try Zip.unzipFile(url, destination: folderLocation(), overwrite: true, password: nil)
+    return folderLocation()
   }
 }

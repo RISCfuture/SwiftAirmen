@@ -13,9 +13,9 @@ import StreamingCSV
 /// This provides significant performance improvements when parsing the full
 /// airman database.
 ///
-/// Call the ``parse(files:progress:errorCallback:)`` method to parse the airman
-/// database. The method uses Swift's async/await concurrency and returns an
-/// ``AirmanDictionary``.
+/// Call the ``parse(files:progress:)`` method to parse the airman database. The
+/// method uses Swift's async/await concurrency and returns an
+/// ``AirmanDictionary`` along with any non-fatal errors encountered.
 ///
 /// You can use ``Downloader`` to download the CSV file automatically. See
 /// <doc:GettingStarted> for an example.
@@ -26,22 +26,6 @@ public final class Parser: Sendable {
    data loaded for that airman.
    */
   public typealias AirmanDictionary = [String: Airman]
-
-  /**
-   Callback used for all `parse` methods; called when an error occurs during
-   parsing. Parsing does not stop; the error is reported and parsing
-   continues.
-
-   - Parameter error: The parsing error that occurred.
-   */
-  public typealias ErrorCallback = @Sendable (_ error: Error) -> Void
-
-  /**
-   Callback used to report progress during parsing operations.
-
-   - Parameter progress: The progress of the parsing operation.
-   */
-  public typealias ProgressCallback = @Sendable (Progress) -> Void
 
   static let rowParser: [File: any RowParser.Type] = [
     .pilotBasic: BasicRowParser.self,
@@ -88,43 +72,43 @@ public final class Parser: Sendable {
    processing for maximum performance. Progress is tracked as a unified total
    across all files based on bytes processed.
 
-   Errors do not stop parsing; they are given to you via `errorCallback` and the row is skipped.
+   Errors do not stop parsing; the offending row is skipped and the error is
+   returned alongside the parsed records.
 
    - Parameter files: The files to parse. This array should be unique,
    otherwise parsing will be unnecessarily slower.
    - Parameter progress: Create an instance of ``AsyncProgress`` and pass it
    here if you wish to track parsing progress. Progress is reported based on
    total bytes processed across all files.
-   - Parameter errorCallback: Called when an error occurs during row parsing.
-   Parsing does not halt.
-   - Returns: A dictionary mapping airman identifiers to their records.
+   - Returns: A dictionary mapping airman identifiers to their records, and the
+   non-fatal errors encountered while parsing (an empty array if none).
    */
   public func parse(
     files: [File] = File.allCases,
-    progress: AsyncProgress?,
-    errorCallback: @escaping ErrorCallback
-  ) async throws -> AirmanDictionary {
+    progress: AsyncProgress? = nil
+  ) async throws -> (airmen: AirmanDictionary, errors: [any Error]) {
 
     let db = AirmanDatabase()
+    let errorLog = ErrorLog()
 
-    // Calculate total bytes across all files
     let totalBytes = try calculateTotalFileSize(for: files)
-
-    // Set total bytes for progress tracking
     if let progress {
       await progress.setTotalBytes(totalBytes)
     }
 
-    // Process all files in parallel
     await withTaskGroup(of: Void.self) { group in
       for file in files {
         group.addTask { [self] in
-          await parseFile(file, into: db, progress: progress, errorCallback: errorCallback)
+          await parseFile(file, into: db, progress: progress, errorLog: errorLog)
         }
       }
     }
 
-    return await db.merged()
+    if let progress {
+      await progress.finish()
+    }
+
+    return (airmen: await db.merged(), errors: await errorLog.collect())
   }
 
   // Parses a single CSV file and adds airmen to the database
@@ -132,13 +116,12 @@ public final class Parser: Sendable {
     _ file: File,
     into database: AirmanDatabase,
     progress: AsyncProgress?,
-    errorCallback: @escaping ErrorCallback
+    errorLog: ErrorLog
   ) async {
     let url = url(for: file)
 
-    // Check if file exists
     guard FileManager.default.fileExists(atPath: url.path) else {
-      errorCallback(Errors.fileNotFound(url: url))
+      await errorLog.record(Errors.fileNotFound(url: url))
       return
     }
 
@@ -146,31 +129,26 @@ public final class Parser: Sendable {
       let rowParserType = Self.rowParser[file]!
       let rowParser = rowParserType.init()
 
-      // Create parallel reader
       let reader = ParallelCSVReader(url: url, delimiter: ",", quote: "\"", escape: "\"")
 
-      // Get file size for progress estimation
       let fileAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
       let fileSize = Int64(fileAttributes[.size] as? Int ?? 0)
 
-      // Create progress tracker for this file
       let tracker = ProgressTracker(fileSize: fileSize, progress: progress)
 
-      // Process rows with batched progress tracking
       try await reader.processRows { [self] fields in
         await processRow(
           fields: fields,
           with: rowParser,
           into: database,
           tracker: tracker,
-          errorCallback: errorCallback
+          errorLog: errorLog
         )
       }
 
-      // Ensure all progress is reported for this file
       await tracker.finalize()
     } catch {
-      errorCallback(error)
+      await errorLog.record(error)
     }
   }
 
@@ -180,7 +158,7 @@ public final class Parser: Sendable {
     with rowParser: any RowParser,
     into database: AirmanDatabase,
     tracker: ProgressTracker,
-    errorCallback: @escaping ErrorCallback
+    errorLog: ErrorLog
   ) async {
     await tracker.incrementRow()
 
@@ -189,7 +167,7 @@ public final class Parser: Sendable {
         await database.append(airman: airman)
       }
     } catch {
-      errorCallback(error)
+      await errorLog.record(error)
     }
   }
 
@@ -249,5 +227,22 @@ private actor ProgressTracker {
         await progress.addBytes(remaining)
       }
     }
+  }
+}
+
+// MARK: - ErrorLog
+
+// Collects non-fatal parsing errors from concurrent file-parsing tasks.
+private actor ErrorLog {
+  private var errors: [any Error] = []
+
+  func record(_ error: sending any Error) {
+    errors.append(error)
+  }
+
+  func collect() -> sending [any Error] {
+    let collected = errors
+    errors = []
+    return collected
   }
 }

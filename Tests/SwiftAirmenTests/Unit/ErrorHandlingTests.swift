@@ -80,8 +80,8 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("Error callback receives all parsing errors")
-  func errorCallbackReceivesAllErrors() async throws {
+  @Test("Parsing returns all non-fatal errors")
+  func parsingReturnsAllErrors() async throws {
     // Use special files with errors
     let errorTestURL = Bundle.module.resourceURL!
       .appendingPathComponent("TestResources")
@@ -95,18 +95,11 @@ struct ErrorHandlingTests {
     try FileManager.default.copyItem(at: errorTestURL, to: destURL)
 
     let parser = Parser(directory: tempDir)
-    let errorCollector = ErrorCollector()
 
-    _ = try await parser.parse(
-      files: [.pilotBasic],
-      progress: nil,
-      errorCallback: { error in
-        errorCollector.add(error)
-      }
-    )
+    let (_, errors) = try await parser.parse(files: [.pilotBasic])
 
     // Should have collected errors for medical without date
-    let hasMedicalError = errorCollector.errors.contains { error in
+    let hasMedicalError = errors.contains { error in
       if let airmenError = error as? Errors,
         case .medicalWithoutDate = airmenError
       {
@@ -120,19 +113,12 @@ struct ErrorHandlingTests {
   @Test("Parsing continues after encountering errors")
   func parsingContinuesAfterErrors() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCounter = ErrorCounter()
 
     // Parse pilot_cert.csv which has some invalid entries
-    let airmen = try await parser.parse(
-      files: [.pilotCert],
-      progress: nil,
-      errorCallback: { _ in
-        errorCounter.increment()
-      }
-    )
+    let (airmen, errors) = try await parser.parse(files: [.pilotCert])
 
     // Our main test files are now valid, so no errors expected
-    #expect(errorCounter.isEmpty)
+    #expect(errors.isEmpty)
 
     // But valid records should still be parsed
     #expect(!airmen.isEmpty)
@@ -148,18 +134,11 @@ struct ErrorHandlingTests {
   @Test("Multiple errors from single file are all reported")
   func multipleErrorsReported() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCollector = ErrorCollector()
 
-    _ = try await parser.parse(
-      files: [.pilotCert, .nonPilotCert],
-      progress: nil,
-      errorCallback: { error in
-        errorCollector.add(error)
-      }
-    )
+    let (_, errors) = try await parser.parse(files: [.pilotCert, .nonPilotCert])
 
     // Should have multiple different error types
-    let hasLevelError = errorCollector.errors.contains { error in
+    let hasLevelError = errors.contains { error in
       if let airmenError = error as? Errors,
         case .levelNotGiven = airmenError
       {
@@ -177,21 +156,17 @@ struct ErrorHandlingTests {
   func fileNotFoundError() async throws {
     let nonExistentDir = URL(fileURLWithPath: "/tmp/nonexistent_test_dir_\(UUID().uuidString)")
     let parser = Parser(directory: nonExistentDir)
-    let errorCollector = ErrorCollector()
 
-    _ = try await parser.parse(
-      files: [.pilotBasic],
-      progress: nil,
-      errorCallback: { error in
-        if let airmenError = error as? Errors,
-          case .fileNotFound = airmenError
-        {
-          errorCollector.add(error)
+    let (_, errors) = try await parser.parse(files: [.pilotBasic])
+
+    #expect(
+      errors.contains { error in
+        if let airmenError = error as? Errors, case .fileNotFound = airmenError {
+          return true
         }
+        return false
       }
     )
-
-    #expect(!errorCollector.errors.isEmpty)
   }
 
   @Test("CFI without expiration date error")

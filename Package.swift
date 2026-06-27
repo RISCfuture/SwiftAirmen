@@ -2,6 +2,11 @@
 
 import PackageDescription
 
+let approachableConcurrency: [SwiftSetting] = [
+  .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+  .enableUpcomingFeature("InferIsolatedConformances")
+]
+
 let package = Package(
   name: "SwiftAirmen",
   defaultLocalization: "en",
@@ -29,12 +34,14 @@ let package = Package(
         .product(name: "StreamingCSV", package: "StreamingCSV"),
         "Zip"
       ],
-      resources: [.process("Localizable.xcstrings")]
+      resources: [.process("Localizable.xcstrings")],
+      swiftSettings: approachableConcurrency
     ),
     .testTarget(
       name: "SwiftAirmenTests",
       dependencies: ["SwiftAirmen"],
-      resources: [.copy("TestResources")]
+      resources: [.copy("TestResources")],
+      swiftSettings: approachableConcurrency
     ),
     .executableTarget(
       name: "SwiftAirmenE2E",
@@ -42,7 +49,8 @@ let package = Package(
         "SwiftAirmen",
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "Progress", package: "Progress.swift")
-      ]
+      ],
+      swiftSettings: approachableConcurrency
     )
   ],
   swiftLanguageModes: [.v5, .v6]

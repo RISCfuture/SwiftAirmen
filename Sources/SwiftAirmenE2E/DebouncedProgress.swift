@@ -3,53 +3,34 @@ import Progress
 import SwiftAirmen
 
 actor DebouncedProgress {
+  private static let renderInterval: TimeInterval = 1
+
   private var progressBar: ProgressBar?
-  var progress: SwiftAirmen.Progress?
-  private var progressTask: Task<Void, Never>?
+  private var lastRenderAt = Date.distantPast
 
-  func setProgress(_ progress: SwiftAirmen.Progress) { self.progress = progress }
-
-  private func updateProgressBar() async {
-    guard let progress = self.progress else { return }
-
-    let total = await progress.total
-    if progressBar == nil || progressBar!.count != total {
-      progressBar = await .init(count: Int(progress.total))
+  // Renders progress snapshots from the stream, throttled to one update per
+  // second, always rendering the final value.
+  func track(_ stream: AsyncStream<SwiftAirmen.Progress>) async {
+    var latest: SwiftAirmen.Progress?
+    for await progress in stream {
+      latest = progress
+      if shouldRender() { render(progress) }
     }
-
-    await self.progressBar?.setValue(Int(progress.completed))
+    if let latest { render(latest) }
   }
 
-  func start() {
-    progressTask?.cancel()
-
-    progressTask = Task { [weak self] in
-      guard let self else { return }
-      do {
-        while true {
-          try Task.checkCancellation()
-
-          await updateProgressBar()
-
-          let isFinished = await progress?.isFinished ?? false
-          if isFinished { break }
-          try await Task.sleep(for: .seconds(1))
-        }
-      } catch is CancellationError {
-        // let task end
-      } catch {
-        var stderr = StandardError()
-        print(error.localizedDescription, to: &stderr)
-        // let task end
-      }
-    }
+  private func shouldRender() -> Bool {
+    let now = Date()
+    guard now.timeIntervalSince(lastRenderAt) >= Self.renderInterval else { return false }
+    lastRenderAt = now
+    return true
   }
 
-  func stop() {
-    if var progressBar {
-      progressBar.setValue(progressBar.count)
+  private func render(_ progress: SwiftAirmen.Progress) {
+    let total = Int(progress.total)
+    if progressBar?.count != total {
+      progressBar = ProgressBar(count: total)
     }
-    progressTask?.cancel()
-    progressTask = nil
+    progressBar?.setValue(Int(progress.completed))
   }
 }

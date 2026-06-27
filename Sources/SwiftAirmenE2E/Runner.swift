@@ -20,47 +20,34 @@ class Runner {
   }
 
   private func download() async throws -> URL {
+    let downloader = try Downloader()
+    let progressStream = downloader.progress
     let bar = DebouncedProgress()
-    await bar.start()
-    defer { Task { await bar.stop() } }
-
-    let downloader = try Downloader { progress in Task { await bar.setProgress(progress) } }
-    return try await downloader.download()
+    async let tracking: Void = bar.track(progressStream)
+    let folder = try await downloader.download()
+    await tracking
+    return folder
   }
 
   private func parse(folder: URL) async throws -> [String: Airman] {
-    let bar = DebouncedProgress()
-    await bar.start()
-    defer { Task { await bar.stop() } }
-
     let parser = Parser(directory: folder)
-    let progress = AsyncProgress { progress in Task { await bar.setProgress(progress) } }
-
-    final class ErrorCounter: @unchecked Sendable {
-      private var count = 0
-      private let lock = NSLock()
-
-      func handleError(_ error: Error) {
-        lock.lock()
-        defer { lock.unlock() }
-        count += 1
-        if count <= 10 {  // Only print first 10 errors to avoid spam
-          print("⚠️ Parsing error: \(error)")
-        }
-      }
-
-      func printSummary() {
-        if count > 10 {
-          print("⚠️ ... and \(count - 10) more errors")
-        }
-      }
-    }
-
-    let errorCounter = ErrorCounter()
-    let airmen = try await parser.parse(progress: progress, errorCallback: errorCounter.handleError)
-    errorCounter.printSummary()
-
+    let progress = AsyncProgress()
+    let progressStream = progress.updates
+    let bar = DebouncedProgress()
+    async let tracking: Void = bar.track(progressStream)
+    let (airmen, errors) = try await parser.parse(progress: progress)
+    await tracking
+    reportErrors(errors)
     return airmen
+  }
+
+  private func reportErrors(_ errors: [any Error]) {
+    for error in errors.prefix(10) {
+      print("⚠️ Parsing error: \(error)")
+    }
+    if errors.count > 10 {
+      print("⚠️ … and \(errors.count - 10) more errors")
+    }
   }
 
   func testResult(airmen: Parser.AirmanDictionary) {
