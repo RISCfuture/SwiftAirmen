@@ -56,15 +56,14 @@ to your downloaded CSV records:
 
 ``` swift
 let parser = SwiftAirmen.Parser(directory: directoryURL)
-let airmen = try await parser.parse(errorCallback: { error in
-  // your error handler here
-})
+let (airmen, errors) = try await parser.parse()
+// inspect `errors` for any non-fatal parsing errors
 ```
 
 The `parse` method executes asynchronously using Swift's async/await and returns
-a dictionary mapping airman unique IDs to the `Airman` record for that airman.
-Any parsing errors that occur are given to you via `errorCallback`. The row is
-skipped but parsing is not aborted.
+a dictionary mapping airman unique IDs to the `Airman` record for that airman,
+together with any non-fatal parsing errors. Each offending row is skipped but
+parsing is not aborted, and the errors are returned alongside the records.
 
 An `Airman` record contains information about the airman and their
 certificates:

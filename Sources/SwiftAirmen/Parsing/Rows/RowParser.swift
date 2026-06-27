@@ -17,7 +17,7 @@ extension RowParser {
 
 // MARK: - BasicRowParser
 
-final class BasicRowParser: RowParser, @unchecked Sendable {
+final class BasicRowParser: RowParser {
   func parseRow(_ row: AirmanBasicRow) throws -> Airman {
     var airman = Airman(id: row.uniqueID)
     airman.firstName = row.firstName
@@ -78,7 +78,7 @@ final class BasicRowParser: RowParser, @unchecked Sendable {
 
 // MARK: - PilotCertRowParser
 
-final class PilotCertRowParser: RowParser, @unchecked Sendable {
+final class PilotCertRowParser: RowParser {
   func parseRow(_ row: PilotCertRow) throws -> Airman {
     var airman = Airman(id: row.uniqueID)
     airman.firstName = row.firstName
@@ -263,7 +263,7 @@ final class PilotCertRowParser: RowParser, @unchecked Sendable {
 
 // MARK: - NonPilotCertRowParser
 
-final class NonPilotCertRowParser: RowParser, @unchecked Sendable {
+final class NonPilotCertRowParser: RowParser {
   func parseRow(_ row: NonPilotCertRow) throws -> Airman {
     var airman = Airman(id: row.uniqueID)
     airman.firstName = row.firstName

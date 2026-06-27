@@ -12,17 +12,10 @@ struct ParserIntegrationTests {
   @Test("Parse pilot basic CSV file")
   func parsePilotBasicCSV() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCollector = ErrorCollector()
 
-    let airmen = try await parser.parse(
-      files: [.pilotBasic],
-      progress: nil,
-      errorCallback: { error in
-        errorCollector.add(error)
-      }
-    )
+    let (airmen, errors) = try await parser.parse(files: [.pilotBasic])
 
-    #expect(errorCollector.errors.isEmpty)
+    #expect(errors.isEmpty)
 
     // Test first-class medical
     let john = try #require(airmen["A0000001"])
@@ -60,15 +53,8 @@ struct ParserIntegrationTests {
   @Test("Parse pilot certificates CSV file")
   func parsePilotCertCSV() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCollector = ErrorCollector()
 
-    let airmen = try await parser.parse(
-      files: [.pilotCert],
-      progress: nil,
-      errorCallback: { error in
-        errorCollector.add(error)
-      }
-    )
+    let (airmen, _) = try await parser.parse(files: [.pilotCert])
 
     // Test ATP with type ratings
     let john = try #require(airmen["A0000001"])
@@ -119,15 +105,8 @@ struct ParserIntegrationTests {
   @Test("Parse non-pilot certificates CSV file")
   func parseNonPilotCertCSV() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCollector = ErrorCollector()
 
-    let airmen = try await parser.parse(
-      files: [.nonPilotCert],
-      progress: nil,
-      errorCallback: { error in
-        errorCollector.add(error)
-      }
-    )
+    let (airmen, errors) = try await parser.parse(files: [.nonPilotCert])
 
     // Test mechanic with A&P
     let frank = try #require(airmen["A0000008"])
@@ -170,7 +149,7 @@ struct ParserIntegrationTests {
 
     // Test rigger without level (should be in errors)
     #expect(
-      errorCollector.errors.contains { error in
+      errors.contains { error in
         if let airmenError = error as? Errors,
           case .levelNotGiven(uniqueID: "A0000018") = airmenError
         {
@@ -185,11 +164,7 @@ struct ParserIntegrationTests {
   func mergeMultipleFiles() async throws {
     let parser = Parser(directory: testResourcesURL)
 
-    let airmen = try await parser.parse(
-      files: [.pilotBasic, .pilotCert],
-      progress: nil,
-      errorCallback: { _ in }
-    )
+    let (airmen, _) = try await parser.parse(files: [.pilotBasic, .pilotCert])
 
     // John Doe should have data from both files
     let john = try #require(airmen["A0000001"])
@@ -216,11 +191,7 @@ struct ParserIntegrationTests {
     let parser = Parser(directory: testResourcesURL)
     let progress = AsyncProgress()
 
-    _ = try await parser.parse(
-      files: [.pilotBasic],
-      progress: progress,
-      errorCallback: { _ in }
-    )
+    _ = try await parser.parse(files: [.pilotBasic], progress: progress)
 
     // Just verify that parsing completes with progress tracking enabled
     // We can't easily test the actual progress updates without access to the AsyncProgress internals
@@ -231,36 +202,25 @@ struct ParserIntegrationTests {
   func fileNotFound() async throws {
     let nonExistentDir = URL(fileURLWithPath: "/tmp/nonexistent")
     let parser = Parser(directory: nonExistentDir)
-    let errorCollector = ErrorCollector()
 
-    _ = try await parser.parse(
-      files: [.pilotBasic],
-      progress: nil,
-      errorCallback: { error in
-        if let airmenError = error as? Errors,
-          case .fileNotFound = airmenError
-        {
-          errorCollector.add(error)
+    let (_, errors) = try await parser.parse(files: [.pilotBasic])
+
+    #expect(
+      errors.contains { error in
+        if let airmenError = error as? Errors, case .fileNotFound = airmenError {
+          return true
         }
+        return false
       }
     )
-
-    #expect(!errorCollector.errors.isEmpty)
   }
 
   @Test("Continue parsing after errors")
   func continueAfterErrors() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let errorCounter = ErrorCounter()
 
     // Parse file with pilot cert errors (missing level, missing expiration)
-    let airmen = try await parser.parse(
-      files: [.pilotCert],
-      progress: nil,
-      errorCallback: { _ in
-        errorCounter.increment()
-      }
-    )
+    let (airmen, _) = try await parser.parse(files: [.pilotCert])
 
     // Our test files are now valid, so no errors expected
     #expect(!airmen.isEmpty)
