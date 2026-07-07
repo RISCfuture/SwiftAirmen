@@ -1,5 +1,15 @@
 # Change Log
 
+## [3.1.0] - 2026-07-06
+
+### Added
+
+- Linux support. The archive downloader now uses ZIPFoundation in place of the
+  Apple-only `Zip` dependency, `URLSession` is guarded behind
+  `FoundationNetworking`, and a `String(localized:)` shim covers error strings.
+  On Linux the download falls back to a buffered `URLSession.data(for:)` (Apple
+  keeps the incremental streaming path).
+
 ## [3.0.0] - 2026-06-26
 
 ### Changed (breaking)
