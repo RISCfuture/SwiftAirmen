@@ -1,5 +1,9 @@
 import Foundation
-import Zip
+import ZIPFoundation
+
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
 
 /// Downloads the airmen certificate registry from the FAA in CSV format. See
 /// https://www.faa.gov/licenses_certificates/airmen_certification/releasable_airmen_download/
@@ -104,28 +108,51 @@ public class Downloader {
     defer { progressContinuation.finish() }
 
     let request = URLRequest(url: dataURL())
-
-    let (bytes, response) = try await session.bytes(for: request)
-    guard let response = response as? HTTPURLResponse else {
-      throw Errors.networkError(request: request, response: response)
-    }
-    guard response.statusCode / 100 == 2 else {
-      throw Errors.networkError(request: request, response: response)
-    }
-
-    let total = response.expectedContentLength
-    var data = Data(capacity: Int(total))
-    for try await byte in bytes {
-      data.append(byte)
-      progressContinuation.yield(.init(Int64(data.count), of: total))
-    }
+    let data = try await fetch(request)
 
     try data.write(to: zipfileLocation())
     return zipfileLocation()
   }
 
-  private func unzip(url: URL) throws -> URL {
-    try Zip.unzipFile(url, destination: folderLocation(), overwrite: true, password: nil)
-    return folderLocation()
+  private func validate(_ response: URLResponse, for request: URLRequest) throws -> HTTPURLResponse
+  {
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw Errors.networkError(request: request, response: response)
+    }
+    guard httpResponse.statusCode / 100 == 2 else {
+      throw Errors.networkError(request: request, response: response)
+    }
+    return httpResponse
+  }
+
+  // `URLSession.bytes(for:)` isn’t available in FoundationNetworking, so Linux falls back to a
+  // single-shot download without incremental progress.
+  #if canImport(Darwin)
+    private func fetch(_ request: URLRequest) async throws -> Data {
+      let (bytes, response) = try await session.bytes(for: request)
+      let httpResponse = try validate(response, for: request)
+
+      let total = httpResponse.expectedContentLength
+      var data = Data(capacity: Int(total))
+      for try await byte in bytes {
+        data.append(byte)
+        progressContinuation.yield(.init(Int64(data.count), of: total))
+      }
+      return data
+    }
+  #else
+    private func fetch(_ request: URLRequest) async throws -> Data {
+      let (data, response) = try await session.data(for: request)
+      let httpResponse = try validate(response, for: request)
+      progressContinuation.yield(.init(Int64(data.count), of: httpResponse.expectedContentLength))
+      return data
+    }
+  #endif
+
+  func unzip(url: URL) throws -> URL {
+    let destination = folderLocation()
+    try? FileManager.default.removeItem(at: destination)
+    try FileManager.default.unzipItem(at: url, to: destination)
+    return destination
   }
 }

@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 /// The errors that can be thrown by `Parser` during a parsing operation.
 public enum Errors: Swift.Error {
   /**
@@ -105,100 +109,180 @@ extension Errors: LocalizedError {
   public var errorDescription: String? {
     switch self {
       case .networkError:
-        return String(localized: "Failed to download airmen data.", comment: "error description")
+        #if canImport(Darwin)
+          return String(localized: "Failed to download airmen data.", comment: "error description")
+        #else
+          return "Failed to download airmen data."
+        #endif
       default:
-        return String(localized: "Failed to parse airmen data.", comment: "error description")
+        #if canImport(Darwin)
+          return String(localized: "Failed to parse airmen data.", comment: "error description")
+        #else
+          return "Failed to parse airmen data."
+        #endif
     }
   }
 
   public var failureReason: String? {
     switch self {
       case .invalidDate(let date):
-        return String(localized: "Invalid date “\(date)”", comment: "failure reason")
+        #if canImport(Darwin)
+          return String(localized: "Invalid date “\(date)”", comment: "failure reason")
+        #else
+          return "Invalid date “\(date)”"
+        #endif
       case .certificateTypeNotGiven(let uniqueID):
-        return String(
-          localized: "No certificate type for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case .levelNotGiven(let uniqueID):
-        return String(
-          localized: "No certificate level for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case .expirationDateNotGiven(let uniqueID):
-        return String(
-          localized: "No certificate expiration date for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case .medicalWithoutDate(let uniqueID):
-        return String(
-          localized: "No medical expiration date for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .unknownMedicalClass(`class`, uniqueID):
-        return String(
-          localized: "Unknown medical class “\(`class`)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .unknownCertificateType(type, uniqueID):
-        return String(
-          localized: "Unknown certificate type “\(type)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .unknownRating(rating, uniqueID):
-        return String(
-          localized: "Unknown rating “\(rating)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .unknownCertificateLevel(level, uniqueID):
-        return String(
-          localized: "Unknown certificate level “\(level)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .unknownRatingLevel(level, uniqueID):
-        return String(
-          localized: "Unknown rating level “\(level)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .invalidRating(string, uniqueID):
-        return String(
-          localized: "Improperly formatted rating “\(string)” for record \(uniqueID)",
-          comment: "failure reason"
-        )
-      case let .networkError(request, response):
-        if let response = response as? HTTPURLResponse {
+        #if canImport(Darwin)
           return String(
-            localized:
-              "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”.",
+            localized: "No certificate type for record \(uniqueID)",
             comment: "failure reason"
           )
+        #else
+          return "No certificate type for record \(uniqueID)"
+        #endif
+      case .levelNotGiven(let uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "No certificate level for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "No certificate level for record \(uniqueID)"
+        #endif
+      case .expirationDateNotGiven(let uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "No certificate expiration date for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "No certificate expiration date for record \(uniqueID)"
+        #endif
+      case .medicalWithoutDate(let uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "No medical expiration date for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "No medical expiration date for record \(uniqueID)"
+        #endif
+      case let .unknownMedicalClass(`class`, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown medical class “\(`class`)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Unknown medical class “\(`class`)” for record \(uniqueID)"
+        #endif
+      case let .unknownCertificateType(type, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown certificate type “\(type)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Unknown certificate type “\(type)” for record \(uniqueID)"
+        #endif
+      case let .unknownRating(rating, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown rating “\(rating)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Unknown rating “\(rating)” for record \(uniqueID)"
+        #endif
+      case let .unknownCertificateLevel(level, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown certificate level “\(level)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Unknown certificate level “\(level)” for record \(uniqueID)"
+        #endif
+      case let .unknownRatingLevel(level, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown rating level “\(level)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Unknown rating level “\(level)” for record \(uniqueID)"
+        #endif
+      case let .invalidRating(string, uniqueID):
+        #if canImport(Darwin)
+          return String(
+            localized: "Improperly formatted rating “\(string)” for record \(uniqueID)",
+            comment: "failure reason"
+          )
+        #else
+          return "Improperly formatted rating “\(string)” for record \(uniqueID)"
+        #endif
+      case let .networkError(request, response):
+        if let response = response as? HTTPURLResponse {
+          #if canImport(Darwin)
+            return String(
+              localized:
+                "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”.",
+              comment: "failure reason"
+            )
+          #else
+            return
+              "HTTP response \(response.statusCode) received when downloading from “\(request.url!.absoluteString)”."
+          #endif
         }
-        return String(
-          localized:
-            "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.",
-          comment: "failure reason"
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”.",
+            comment: "failure reason"
+          )
+        #else
+          return
+            "Unexpected network error occurred when downloading from “\(request.url!.absoluteString)”."
+        #endif
       case .fileNotFound(let url):
-        return String(localized: "File not found: \(url.path())")
+        #if canImport(Darwin)
+          return String(localized: "File not found: \(url.path())")
+        #else
+          return "File not found: \(url.path())"
+        #endif
     }
   }
 
   public var recoverySuggestion: String? {
     switch self {
       case .networkError(let request, _):
-        return String(
-          localized:
-            "Verify that “\(request.url!.absoluteString)” is accessible via your Internet connection.",
-          comment: "recovery suggestion"
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Verify that “\(request.url!.absoluteString)” is accessible via your Internet connection.",
+            comment: "recovery suggestion"
+          )
+        #else
+          return
+            "Verify that “\(request.url!.absoluteString)” is accessible via your Internet connection."
+        #endif
       case .fileNotFound:
-        return String(localized: "Verify that the file was not moved or deleted.")
+        #if canImport(Darwin)
+          return String(localized: "Verify that the file was not moved or deleted.")
+        #else
+          return "Verify that the file was not moved or deleted."
+        #endif
       default:
-        return String(
-          localized:
-            "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.",
-          comment: "recovery suggestion"
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen.",
+            comment: "recovery suggestion"
+          )
+        #else
+          return
+            "Verify that the CSV file is not corrupt. If it isn’t, the format may have changed, requiring an update to SwiftAirmen."
+        #endif
     }
   }
 }
