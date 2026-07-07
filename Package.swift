@@ -22,7 +22,7 @@ let package = Package(
     .package(url: "https://github.com/RISCfuture/StreamingCSV", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
-    .package(url: "https://github.com/marmelroy/Zip.git", from: "2.1.0"),
+    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.0"),
     .package(url: "https://github.com/jkandzi/Progress.swift.git", from: "0.4.0")
   ],
   targets: [
@@ -32,7 +32,7 @@ let package = Package(
       name: "SwiftAirmen",
       dependencies: [
         .product(name: "StreamingCSV", package: "StreamingCSV"),
-        "Zip"
+        .product(name: "ZIPFoundation", package: "ZIPFoundation")
       ],
       resources: [.process("Localizable.xcstrings")],
       swiftSettings: approachableConcurrency

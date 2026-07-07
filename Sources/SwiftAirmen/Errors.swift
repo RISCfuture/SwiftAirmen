@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 /// The errors that can be thrown by `Parser` during a parsing operation.
 public enum Errors: Swift.Error {
   /**
