@@ -1,9 +1,5 @@
 # ``SwiftAirmen/Medical``
 
-@Metadata {
-    @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### FAA

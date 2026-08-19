@@ -1,9 +1,5 @@
 # ``SwiftAirmen/PilotRating``
 
-@Metadata {
-    @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Category and Class

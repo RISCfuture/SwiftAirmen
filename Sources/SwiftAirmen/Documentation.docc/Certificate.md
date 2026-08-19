@@ -1,9 +1,5 @@
 # ``SwiftAirmen/Certificate``
 
-@Metadata {
-    @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Pilots

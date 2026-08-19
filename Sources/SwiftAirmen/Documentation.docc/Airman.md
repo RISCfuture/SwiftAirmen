@@ -1,9 +1,5 @@
 # ``SwiftAirmen/Airman``
 
-@Metadata {
-    @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Identification
