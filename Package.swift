@@ -19,10 +19,10 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/RISCfuture/StreamingCSV", from: "2.0.0"),
-    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
-    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.0"),
+    .package(url: "https://github.com/RISCfuture/StreamingCSV", from: "2.1.0"),
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.8.2"),
+    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20"),
     .package(url: "https://github.com/jkandzi/Progress.swift.git", from: "0.4.0")
   ],
   targets: [
