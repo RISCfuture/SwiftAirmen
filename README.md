@@ -4,7 +4,7 @@
 
 [![Documentation](https://github.com/RISCfuture/SwiftAirmen/actions/workflows/doc.yml/badge.svg)](https://riscfuture.github.io/SwiftAirmen/)
 
-[![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
+[![Swift 6.3+](https://img.shields.io/badge/Swift-6.3+-orange.svg)](https://swift.org)
 
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-blue.svg)](https://swift.org)
 
@@ -18,7 +18,7 @@ use with this library.
 
 ## Requirements
 
-This library was built for use with Swift 5.5 or newer on any platform or
+This library was built for use with Swift 6.3 or newer on any platform or
 architecture.
 
 ## Installation
