@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 import StreamingCSV
 
 /// Parses an airman certification database into memory. The database must be

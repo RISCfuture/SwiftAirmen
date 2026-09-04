@@ -1,7 +1,7 @@
-import Foundation
+public import Foundation
 
 #if canImport(FoundationNetworking)
-  import FoundationNetworking
+  public import FoundationNetworking
 #endif
 
 /// The errors that can be thrown by `Parser` during a parsing operation.
