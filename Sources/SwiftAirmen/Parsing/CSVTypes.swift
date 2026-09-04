@@ -1,5 +1,5 @@
-import Foundation
-import StreamingCSV
+public import Foundation
+public import StreamingCSV
 
 // Custom CSV decodable types
 extension DateComponents: @retroactive CSVDecodable {

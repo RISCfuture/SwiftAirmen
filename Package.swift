@@ -2,9 +2,13 @@
 
 import PackageDescription
 
-let approachableConcurrency: [SwiftSetting] = [
+let upcomingFeatures: [SwiftSetting] = [
   .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
-  .enableUpcomingFeature("InferIsolatedConformances")
+  .enableUpcomingFeature("InferIsolatedConformances"),
+  .enableUpcomingFeature("ImmutableWeakCaptures"),
+  .enableUpcomingFeature("MemberImportVisibility"),
+  .enableUpcomingFeature("ExistentialAny"),
+  .enableUpcomingFeature("InternalImportsByDefault")
 ]
 
 let package = Package(
@@ -35,13 +39,13 @@ let package = Package(
         .product(name: "ZIPFoundation", package: "ZIPFoundation")
       ],
       resources: [.process("Localizable.xcstrings")],
-      swiftSettings: approachableConcurrency
+      swiftSettings: upcomingFeatures
     ),
     .testTarget(
       name: "SwiftAirmenTests",
       dependencies: ["SwiftAirmen"],
       resources: [.copy("TestResources")],
-      swiftSettings: approachableConcurrency
+      swiftSettings: upcomingFeatures
     ),
     .executableTarget(
       name: "SwiftAirmenE2E",
@@ -50,7 +54,7 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "Progress", package: "Progress.swift")
       ],
-      swiftSettings: approachableConcurrency
+      swiftSettings: upcomingFeatures
     )
   ],
   swiftLanguageModes: [.v5, .v6]

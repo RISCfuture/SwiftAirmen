@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// A certificate level for a pilot certificate.
 public enum PilotLevel: Comparable, CustomStringConvertible, Sendable {
