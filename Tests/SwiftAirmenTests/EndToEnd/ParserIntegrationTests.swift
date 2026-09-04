@@ -3,14 +3,14 @@ import Testing
 
 @testable import SwiftAirmen
 
-@Suite("Parser Integration Tests")
-struct ParserIntegrationTests {
+@Suite
+struct `Parser integration tests` {
 
   let testResourcesURL = Bundle.module.resourceURL!
     .appendingPathComponent("TestResources")
 
-  @Test("Parse pilot basic CSV file")
-  func parsePilotBasicCSV() async throws {
+  @Test
+  func `parses the pilot basic CSV file`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     let (airmen, errors) = try await parser.parse(files: [.pilotBasic])
@@ -50,8 +50,8 @@ struct ParserIntegrationTests {
     #expect(david.address?.country == "UK")
   }
 
-  @Test("Parse pilot certificates CSV file")
-  func parsePilotCertCSV() async throws {
+  @Test
+  func `parses the pilot certificates CSV file`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     let (airmen, _) = try await parser.parse(files: [.pilotCert])
@@ -102,8 +102,8 @@ struct ParserIntegrationTests {
     }
   }
 
-  @Test("Parse non-pilot certificates CSV file")
-  func parseNonPilotCertCSV() async throws {
+  @Test
+  func `parses the non-pilot certificates CSV file`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     let (airmen, errors) = try await parser.parse(files: [.nonPilotCert])
@@ -160,8 +160,8 @@ struct ParserIntegrationTests {
     )
   }
 
-  @Test("Merge data from multiple files")
-  func mergeMultipleFiles() async throws {
+  @Test
+  func `merges data from multiple files`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     let (airmen, _) = try await parser.parse(files: [.pilotBasic, .pilotCert])
@@ -186,8 +186,8 @@ struct ParserIntegrationTests {
     }
   }
 
-  @Test("Progress reporting during parsing")
-  func progressReporting() async throws {
+  @Test
+  func `parses with progress reporting enabled`() async throws {
     let parser = Parser(directory: testResourcesURL)
     let progress = AsyncProgress()
 
@@ -198,8 +198,8 @@ struct ParserIntegrationTests {
     // Test passes if no errors thrown
   }
 
-  @Test("Handle file not found")
-  func fileNotFound() async throws {
+  @Test
+  func `reports a file-not-found error for a missing directory`() async throws {
     let nonExistentDir = URL(fileURLWithPath: "/tmp/nonexistent")
     let parser = Parser(directory: nonExistentDir)
 
@@ -215,8 +215,8 @@ struct ParserIntegrationTests {
     )
   }
 
-  @Test("Continue parsing after errors")
-  func continueAfterErrors() async throws {
+  @Test
+  func `continues parsing after errors`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     // Parse file with pilot cert errors (missing level, missing expiration)

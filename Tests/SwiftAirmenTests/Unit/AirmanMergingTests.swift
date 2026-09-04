@@ -3,11 +3,11 @@ import Testing
 
 @testable import SwiftAirmen
 
-@Suite("Airman Merging Tests")
-struct AirmanMergingTests {
+@Suite
+struct `Airman merging tests` {
 
-  @Test("Merge two Airman records preferring non-nil values from newer record")
-  func mergePreferringNewer() {
+  @Test
+  func `merges two Airman records preferring non-nil values from the newer record`() {
     let oldAirman = Airman(
       id: "A0000001",
       firstName: "John",
@@ -69,8 +69,8 @@ struct AirmanMergingTests {
     }
   }
 
-  @Test("Combine certificates from both records without duplicates")
-  func combineCertificatesWithoutDuplicates() {
+  @Test
+  func `combines certificates from both records without duplicates`() {
     let airman1 = Airman(
       id: "A0000001",
       firstName: "John",
@@ -126,8 +126,8 @@ struct AirmanMergingTests {
     #expect(hasMechanic)
   }
 
-  @Test("Preserve original data when merging with empty record")
-  func mergeWithEmptyRecord() {
+  @Test
+  func `preserves original data when merging with an empty record`() {
     let fullAirman = Airman(
       id: "A0000001",
       firstName: "John",
@@ -184,8 +184,8 @@ struct AirmanMergingTests {
     #expect(merged.certificates.count == 1)
   }
 
-  @Test("Merge partial records correctly")
-  func mergePartialRecords() {
+  @Test
+  func `merges partial records`() {
     let partial1 = Airman(
       id: "A0000001",
       firstName: "John",
@@ -243,8 +243,8 @@ struct AirmanMergingTests {
     #expect(merged.certificates.first == .remotePilot)
   }
 
-  @Test("Address isEmpty property")
-  func addressIsEmpty() {
+  @Test
+  func `reports an Address as empty only when every field is nil`() {
     let emptyAddress = Address(
       street1: nil,
       street2: nil,
@@ -279,8 +279,8 @@ struct AirmanMergingTests {
     #expect(fullAddress.isEmpty == false)
   }
 
-  @Test("Address formatting methods")
-  func addressFormatting() {
+  @Test
+  func `formats city, state, and ZIP from an Address`() {
     let address = Address(
       street1: "123 Main St",
       street2: "Apt 2B",
