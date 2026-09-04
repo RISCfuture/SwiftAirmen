@@ -3,11 +3,11 @@ import Testing
 
 @testable import SwiftAirmen
 
-@Suite("CSV Types Tests")
-struct CSVTypesTests {
+@Suite
+struct `CSV types tests` {
 
-  @Test("Parse MMDDYY date format with century logic")
-  func parseMMDDYY() {
+  @Test
+  func `parses the MMDDYY date format with century logic`() {
     // Years 50-99 should be 1950-1999
     let date1950 = DateComponents(csvString: "011550")
     #expect(date1950?.year == 1950)
@@ -36,8 +36,8 @@ struct CSVTypesTests {
     #expect(date2049?.day == 31)
   }
 
-  @Test("Parse MMDDYYYY date format")
-  func parseMMDDYYYY() {
+  @Test
+  func `parses the MMDDYYYY date format`() {
     let date1995 = DateComponents(csvString: "07041995")
     #expect(date1995?.year == 1995)
     #expect(date1995?.month == 7)
@@ -54,8 +54,8 @@ struct CSVTypesTests {
     #expect(date2100?.day == 31)
   }
 
-  @Test("Handle invalid date formats")
-  func invalidDateFormats() {
+  @Test
+  func `returns nil for invalid date formats`() {
     // Too short
     #expect(DateComponents(csvString: "1234") == nil)
 
@@ -76,8 +76,8 @@ struct CSVTypesTests {
     #expect(DateComponents(csvString: "\t\n") == nil)
   }
 
-  @Test("Handle malformed dates")
-  func malformedDates() {
+  @Test
+  func `parses out-of-range month and day values`() {
     // Invalid month (13)
     let invalidMonth = DateComponents(csvString: "130124")
     #expect(invalidMonth?.month == 13)  // Should parse but be invalid
@@ -95,8 +95,8 @@ struct CSVTypesTests {
     #expect(zeroDay?.day == 0)  // Should parse but be invalid
   }
 
-  @Test("Parse dates with whitespace")
-  func datesWithWhitespace() {
+  @Test
+  func `parses dates surrounded by whitespace`() {
     // Leading whitespace
     let leadingSpace = DateComponents(csvString: "  010124")
     #expect(leadingSpace?.year == 2024)
@@ -116,8 +116,8 @@ struct CSVTypesTests {
     #expect(bothSpaces?.day == 1)
   }
 
-  @Test("TrimmedString handles empty strings")
-  func trimmedStringEmpty() {
+  @Test
+  func `decodes a blank TrimmedString as nil`() {
     let empty = TrimmedString(csvString: "")
     #expect(empty?.value == nil)
 
@@ -128,8 +128,8 @@ struct CSVTypesTests {
     #expect(tabsNewlines?.value == nil)
   }
 
-  @Test("TrimmedString preserves non-empty content")
-  func trimmedStringContent() {
+  @Test
+  func `trims a TrimmedString without losing interior content`() {
     let normal = TrimmedString(csvString: "Hello World")
     #expect(normal?.value == "Hello World")
 
@@ -143,8 +143,8 @@ struct CSVTypesTests {
     #expect(multiline?.value == "Line1\nLine2")
   }
 
-  @Test("OptionalTrimmedString behavior")
-  func optionalTrimmedString() {
+  @Test
+  func `trims an OptionalTrimmedString and blanks whitespace-only input`() {
     let empty = OptionalTrimmedString(csvString: "")
     #expect(empty?.value == nil)
 

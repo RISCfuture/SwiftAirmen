@@ -3,11 +3,11 @@ import Testing
 
 @testable import SwiftAirmen
 
-@Suite("Basic Row Parser")
-struct BasicRowParserTests {
+@Suite
+struct `BasicRowParser tests` {
 
-  @Test("Parse medical class 8 as unknown")
-  func medicalClass8() throws {
+  @Test
+  func `parses medical class 8 as unknown`() throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000001", "JOHN", "DOE", "123 MAIN ST", "", "SEATTLE", "WA", "98101",
@@ -18,8 +18,8 @@ struct BasicRowParserTests {
     #expect(airman.medical == nil)  // Class 8 should result in nil medical
   }
 
-  @Test("Parse BasicMed when no medical class but course date exists")
-  func basicMedWithoutMedicalClass() throws {
+  @Test
+  func `parses BasicMed when a course date exists without a medical class`() throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000002", "JANE", "SMITH", "", "", "", "", "",
@@ -40,8 +40,8 @@ struct BasicRowParserTests {
     }
   }
 
-  @Test("Throw error when medical class exists but date is missing", arguments: ["1", "2", "3"])
-  func medicalWithoutDate(medClass: String) throws {
+  @Test(arguments: ["1", "2", "3"])
+  func `throws when a medical class has no date`(medClass: String) throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000003", "BOB", "JONES", "", "", "", "", "",
@@ -60,8 +60,8 @@ struct BasicRowParserTests {
     }
   }
 
-  @Test("Handle empty address fields")
-  func emptyAddress() throws {
+  @Test
+  func `parses a nil address when every address field is empty`() throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000004", "ALICE", "WILSON", "", "", "", "", "",
@@ -72,8 +72,8 @@ struct BasicRowParserTests {
     #expect(airman.address == nil)  // All empty address fields should result in nil
   }
 
-  @Test("Parse complete address")
-  func completeAddress() throws {
+  @Test
+  func `parses a complete address`() throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000005", "CHARLIE", "BROWN", "789 PINE RD", "APT 5B", "CHICAGO", "IL", "60601",
@@ -91,11 +91,11 @@ struct BasicRowParserTests {
   }
 }
 
-@Suite("Pilot Cert Row Parser")
-struct PilotCertRowParserTests {
+@Suite
+struct `PilotCertRowParser tests` {
 
-  @Test("Parse centerline thrust rating")
-  func centerlineThrustRating() throws {
+  @Test
+  func `parses a centerline thrust rating`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000001", "JOHN", "DOE", "P", "C", "",
@@ -117,8 +117,8 @@ struct PilotCertRowParserTests {
     }
   }
 
-  @Test("Parse combined instrument ratings")
-  func combinedInstrumentRatings() throws {
+  @Test
+  func `parses combined instrument ratings`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000002", "JANE", "SMITH", "P", "A", "",
@@ -138,8 +138,8 @@ struct PilotCertRowParserTests {
     }
   }
 
-  @Test("Parse type ratings with levels")
-  func typeRatingsWithLevels() throws {
+  @Test
+  func `parses type ratings with levels`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000003", "BOB", "JONES", "P", "A", "",
@@ -158,8 +158,8 @@ struct PilotCertRowParserTests {
     }
   }
 
-  @Test("Throw error for pilot cert without level")
-  func pilotCertWithoutLevel() throws {
+  @Test
+  func `throws for a pilot certificate without a level`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000004", "ALICE", "WILSON", "P", "", "",
@@ -179,8 +179,8 @@ struct PilotCertRowParserTests {
     }
   }
 
-  @Test("Parse flight instructor with expiration")
-  func flightInstructorWithExpiration() throws {
+  @Test
+  func `parses a flight instructor certificate with an expiration date`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000005", "CHARLIE", "BROWN", "F", "", "123125",
@@ -205,8 +205,8 @@ struct PilotCertRowParserTests {
     }
   }
 
-  @Test("Throw error for CFI without expiration date")
-  func cfiWithoutExpiration() throws {
+  @Test
+  func `throws for a CFI without an expiration date`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000006", "DAVID", "TAYLOR", "F", "", "",
@@ -227,11 +227,11 @@ struct PilotCertRowParserTests {
   }
 }
 
-@Suite("Non-Pilot Cert Row Parser")
-struct NonPilotCertRowParserTests {
+@Suite
+struct `NonPilotCertRowParser tests` {
 
-  @Test("Parse mechanic with A&P ratings")
-  func mechanicWithAP() throws {
+  @Test
+  func `parses a mechanic with A&P ratings`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000001", "FRANK", "HARRIS", "M", "", "",
@@ -250,8 +250,8 @@ struct NonPilotCertRowParserTests {
     }
   }
 
-  @Test("Parse rigger with level requirements")
-  func riggerWithLevel() throws {
+  @Test
+  func `parses a rigger with level requirements`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000002", "GRACE", "CLARK", "W", "M", "",
@@ -273,8 +273,8 @@ struct NonPilotCertRowParserTests {
     }
   }
 
-  @Test("Parse ground instructor ratings")
-  func groundInstructorRatings() throws {
+  @Test
+  func `parses ground instructor ratings`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000003", "HENRY", "LEWIS", "G", "", "",
@@ -294,8 +294,8 @@ struct NonPilotCertRowParserTests {
     }
   }
 
-  @Test("Parse repairman light sport with ratings")
-  func repairmanLightSport() throws {
+  @Test
+  func `parses a repairman light sport certificate with ratings`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000004", "IDA", "ROBINSON", "L", "", "",
@@ -314,8 +314,8 @@ struct NonPilotCertRowParserTests {
     }
   }
 
-  @Test("Throw error for rigger without level")
-  func riggerWithoutLevel() throws {
+  @Test
+  func `throws for a rigger without a level`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000005", "JACK", "THOMPSON", "W", "", "",
@@ -334,8 +334,8 @@ struct NonPilotCertRowParserTests {
     }
   }
 
-  @Test("Parse dispatcher certificate")
-  func dispatcherCertificate() throws {
+  @Test
+  func `parses a dispatcher certificate`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000006", "KAREN", "WHITE", "D", "", "",
@@ -346,8 +346,8 @@ struct NonPilotCertRowParserTests {
     #expect(airman.certificates.first == .dispatcher)
   }
 
-  @Test("Parse control tower operator")
-  func controlTowerOperator() throws {
+  @Test
+  func `parses a control tower operator certificate`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000007", "LEO", "GARCIA", "T", "", "",

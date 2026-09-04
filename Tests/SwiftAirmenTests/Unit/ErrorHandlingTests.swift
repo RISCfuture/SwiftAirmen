@@ -3,14 +3,14 @@ import Testing
 
 @testable import SwiftAirmen
 
-@Suite("Error Handling Tests")
-struct ErrorHandlingTests {
+@Suite
+struct `error handling tests` {
 
   let testResourcesURL = Bundle.module.resourceURL!
     .appendingPathComponent("TestResources")
 
-  @Test("Medical certificate without date throws specific error")
-  func medicalWithoutDateError() throws {
+  @Test
+  func `throws medicalWithoutDate for a medical certificate with no date`() throws {
     let parser = BasicRowParser()
     let fields = [
       "A0000001", "JOHN", "DOE", "", "", "", "", "",
@@ -29,8 +29,8 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("Unknown certificate type throws with details")
-  func unknownCertificateTypeError() throws {
+  @Test
+  func `throws unknownCertificateType naming the unrecognized type`() throws {
     // Testing the error structure itself
     let error = Errors.unknownCertificateType("UNKNOWN", uniqueID: "A0000001")
 
@@ -42,8 +42,8 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("Missing required level throws appropriate error")
-  func missingLevelError() throws {
+  @Test
+  func `throws levelNotGiven when a required level is missing`() throws {
     let pilotParser = PilotCertRowParser()
     let pilotFields = [
       "A0000001", "JOHN", "DOE", "P", "", "",  // Pilot cert without level
@@ -80,8 +80,8 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("Parsing returns all non-fatal errors")
-  func parsingReturnsAllErrors() async throws {
+  @Test
+  func `returns all non-fatal errors from parsing`() async throws {
     // Use special files with errors
     let errorTestURL = Bundle.module.resourceURL!
       .appendingPathComponent("TestResources")
@@ -110,8 +110,8 @@ struct ErrorHandlingTests {
     #expect(hasMedicalError)
   }
 
-  @Test("Parsing continues after encountering errors")
-  func parsingContinuesAfterErrors() async throws {
+  @Test
+  func `continues parsing after encountering errors`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     // Parse pilot_cert.csv which has some invalid entries
@@ -131,8 +131,8 @@ struct ErrorHandlingTests {
     #expect(bob.firstName == "BOB")
   }
 
-  @Test("Multiple errors from single file are all reported")
-  func multipleErrorsReported() async throws {
+  @Test
+  func `reports every error from a single file`() async throws {
     let parser = Parser(directory: testResourcesURL)
 
     let (_, errors) = try await parser.parse(files: [.pilotCert, .nonPilotCert])
@@ -152,8 +152,8 @@ struct ErrorHandlingTests {
     // We'd only have level errors if rigger cert is missing level
   }
 
-  @Test("File not found error is properly reported")
-  func fileNotFoundError() async throws {
+  @Test
+  func `reports a file-not-found error`() async throws {
     let nonExistentDir = URL(fileURLWithPath: "/tmp/nonexistent_test_dir_\(UUID().uuidString)")
     let parser = Parser(directory: nonExistentDir)
 
@@ -169,8 +169,8 @@ struct ErrorHandlingTests {
     )
   }
 
-  @Test("CFI without expiration date error")
-  func cfiWithoutExpirationError() throws {
+  @Test
+  func `throws expirationDateNotGiven for a CFI with no expiration date`() throws {
     let parser = PilotCertRowParser()
     let fields = [
       "A0000001", "JOHN", "DOE", "F", "", "",  // CFI without expiration
@@ -190,8 +190,8 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("Error descriptions are meaningful")
-  func errorDescriptions() {
+  @Test
+  func `includes the unique ID and certificate type in error descriptions`() {
     let medicalError = Errors.medicalWithoutDate(uniqueID: "A0000001")
     let description = String(describing: medicalError)
     #expect(description.contains("A0000001"))

@@ -4,8 +4,8 @@ import ZIPFoundation
 
 @testable import SwiftAirmen
 
-@Suite("Downloader")
-struct DownloaderTests {
+@Suite
+struct `Downloader tests` {
 
   let testResourcesURL = Bundle.module.resourceURL!
     .appendingPathComponent("TestResources")
@@ -31,8 +31,8 @@ struct DownloaderTests {
     return downloader
   }
 
-  @Test("Unzips a downloaded archive")
-  func unzip() throws {
+  @Test
+  func `unzips a downloaded archive`() throws {
     let downloader = try makeDownloaderWithZippedFixture()
 
     let extractedFolder = try downloader.unzip(url: downloader.zipfileLocation())
@@ -43,8 +43,8 @@ struct DownloaderTests {
     #expect(try Data(contentsOf: extractedFile) == Data(contentsOf: fixture))
   }
 
-  @Test("Unzipping overwrites a previously-extracted folder")
-  func unzipOverwritesExistingFolder() throws {
+  @Test
+  func `overwrites a previously-extracted folder when unzipping`() throws {
     let downloader = try makeDownloaderWithZippedFixture()
 
     _ = try downloader.unzip(url: downloader.zipfileLocation())
