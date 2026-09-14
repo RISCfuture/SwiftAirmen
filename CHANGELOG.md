@@ -1,5 +1,14 @@
 # Change Log
 
+## [Unreleased]
+
+### Fixed
+
+- `Downloader.progress` now emits a snapshot about once per megabyte received
+  instead of once per byte, so observing a download no longer costs an
+  `AsyncStream` yield for every byte of a multi-hundred-megabyte archive. A
+  final snapshot is still emitted when the download completes.
+
 ## [3.2.1] - 2026-09-16
 
 ### Changed
