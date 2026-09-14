@@ -22,14 +22,15 @@ public class Downloader {
 
   private static let urlFormat = "https://registry.faa.gov/database/CS%{M}%{Y}.zip"
   private static let calendar = Calendar(identifier: .gregorian)
+  private static let progressReportInterval = 1 << 20
 
   private let date: Date
   private let progressContinuation: AsyncStream<Progress>.Continuation
   let session = URLSession(configuration: .ephemeral)
   let workingDirectory: URL
 
-  /// A stream of download ``Progress`` snapshots, emitting as bytes arrive and
-  /// finishing when the download completes.
+  /// A stream of download ``Progress`` snapshots, emitting periodically as
+  /// bytes arrive and finishing when the download completes.
   public let progress: AsyncStream<Progress>
 
   /**
@@ -134,8 +135,15 @@ public class Downloader {
 
       let total = httpResponse.expectedContentLength
       var data = Data(capacity: Int(total))
+      var countAtLastReport = 0
       for try await byte in bytes {
         data.append(byte)
+        if data.count - countAtLastReport >= Self.progressReportInterval {
+          countAtLastReport = data.count
+          progressContinuation.yield(.init(Int64(data.count), of: total))
+        }
+      }
+      if data.count != countAtLastReport {
         progressContinuation.yield(.init(Int64(data.count), of: total))
       }
       return data
