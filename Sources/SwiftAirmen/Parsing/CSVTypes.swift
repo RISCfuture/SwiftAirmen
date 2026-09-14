@@ -3,43 +3,29 @@ public import StreamingCSV
 
 // Custom CSV decodable types
 extension DateComponents: @retroactive CSVDecodable {
+  private static let twoDigitYearPivot: UInt = 50
+
+  /// Decodes a date written in the registry's `MMDDYY` or `MMDDYYYY` format.
+  /// Month and day are carried through verbatim, so a component the registry
+  /// records out of range stays out of range rather than rolling over.
   public init?(csvString: String) {
-    let csvValue = csvString.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !csvValue.isEmpty else { return nil }
+    let digits = csvString.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard digits.count == 6 || digits.count == 8 else { return nil }
 
-    // Date format is MMDDYY or MMDDYYYY
-    guard csvValue.count == 6 || csvValue.count == 8 else { return nil }
+    let yearDigits = digits.dropFirst(4)
+    guard let month = UInt(digits.prefix(2)),
+      let day = UInt(digits.dropFirst(2).prefix(2)),
+      let year = UInt(yearDigits)
+    else { return nil }
 
-    // Safely extract month (MM)
-    guard csvValue.count >= 2 else { return nil }
-    let monthEnd = csvValue.index(csvValue.startIndex, offsetBy: 2)
-    guard let month = UInt(csvValue[csvValue.startIndex..<monthEnd]) else { return nil }
+    let fullYear = yearDigits.count == 2 ? Self.fullYear(fromTwoDigitYear: year) : year
+    self.init(year: Int(fullYear), month: Int(month), day: Int(day))
+  }
 
-    // Safely extract day (DD)
-    guard csvValue.count >= 4 else { return nil }
-    let dayStart = monthEnd
-    let dayEnd = csvValue.index(dayStart, offsetBy: 2)
-    guard let day = UInt(csvValue[dayStart..<dayEnd]) else { return nil }
-
-    // Safely extract year (YY or YYYY)
-    let yearStart = dayEnd
-    let year: UInt
-    if csvValue.count == 6 {
-      // Two-digit year
-      let yearEnd = csvValue.index(yearStart, offsetBy: 2)
-      guard let year2 = UInt(csvValue[yearStart..<yearEnd]) else { return nil }
-
-      if year2 >= 50 { year = 1900 + year2 } else { year = 2000 + year2 }
-    } else if csvValue.count == 8 {
-      // Four-digit year
-      let yearEnd = csvValue.index(yearStart, offsetBy: 4)
-      guard let year4 = UInt(csvValue[yearStart..<yearEnd]) else { return nil }
-      year = year4
-    } else {
-      return nil
-    }
-
-    self = DateComponents(year: Int(year), month: Int(month), day: Int(day))
+  /// The registry abbreviates years to two digits against a fixed 1950–2049
+  /// window, rather than a window that moves with the current date.
+  private static func fullYear(fromTwoDigitYear year: UInt) -> UInt {
+    year >= twoDigitYearPivot ? 1900 + year : 2000 + year
   }
 }
 
