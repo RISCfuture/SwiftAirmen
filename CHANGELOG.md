@@ -1,5 +1,14 @@
 # Change Log
 
+## [Unreleased]
+
+### Fixed
+
+- Download progress is reported about once per megabyte received instead of
+  once per byte, so observing a download no longer costs an update for every
+  byte of a multi-hundred-megabyte archive. A final report is still made on
+  completion.
+
 ## [3.2.1] - 2026-09-16
 
 ### Changed
