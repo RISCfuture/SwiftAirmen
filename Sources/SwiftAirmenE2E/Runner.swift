@@ -48,22 +48,22 @@ struct Runner {
       )
     }
     let downloader = try Downloader(date: edition.date, workingDirectory: workingDirectory)
-    // Read before the task group forms: reaching into `downloader` from the
-    // concurrent branch would send it across isolation.
-    let progressStream = downloader.progress
+    let progress = ProgressManager(totalCount: 1)
     let bar = DebouncedProgress()
-    async let tracking: Void = bar.track(progressStream)
-    let folder = try await downloader.download()
+    async let tracking: Void = bar.track(progress)
+    let folder = try await downloader.download(
+      progress: progress.subprogress(assigningCount: 1)
+    )
     await tracking
     return folder
   }
 
   private func parse(folder: URL) async throws -> (Parser.AirmanDictionary, [any Error]) {
     let parser = Parser(directory: folder)
-    let progress = AsyncProgress()
+    let progress = ProgressManager(totalCount: 1)
     let bar = DebouncedProgress()
-    async let tracking: Void = bar.track(progress.updates)
-    let result = try await parser.parse(progress: progress)
+    async let tracking: Void = bar.track(progress)
+    let result = try await parser.parse(progress: progress.subprogress(assigningCount: 1))
     await tracking
     return result
   }
