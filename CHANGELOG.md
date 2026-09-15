@@ -1,5 +1,23 @@
 # Change Log
 
+## [3.2.0] - 2026-09-14
+
+### Changed
+
+- Swift 6.3 is now the minimum toolchain. StreamingCSV 2.1.0 carries a Swift
+  6.3 manifest, so Swift 6.1 and 6.2 can no longer resolve this package.
+- Raised dependency floors to StreamingCSV 2.1.0, swift-argument-parser 1.8.2,
+  ZIPFoundation 0.9.20, and swift-docc-plugin 1.5.0.
+
+### Internal
+
+- Enabled the ExistentialAny, InternalImportsByDefault, MemberImportVisibility,
+  and ImmutableWeakCaptures upcoming features on every target, alongside the
+  Approachable Concurrency ones. The package still declares both the v5 and v6
+  language modes, so no consumer source change is required.
+- Tests name themselves with Swift 6.2 raw identifiers instead of `@Test` and
+  `@Suite` display-name strings.
+
 ## [3.1.0] - 2026-07-06
 
 ### Added
