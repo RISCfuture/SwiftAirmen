@@ -13,7 +13,7 @@ class Runner {
 
     print("Statistics")
     print("  Total airmen: \(airmen.count)")
-    print("  Processing time: \(String(format: "%.2f", parseTime)) seconds")
+    print("  Processing time: \(unsafe String(format: "%.2f", parseTime)) seconds")
     print("")
 
     testResult(airmen: airmen)
