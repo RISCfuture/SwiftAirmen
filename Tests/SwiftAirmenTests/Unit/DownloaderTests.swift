@@ -32,6 +32,18 @@ struct `Downloader tests` {
   }
 
   @Test
+  func `builds the archive URL with a zero-padded month and four-digit year`() throws {
+    let downloader = try Downloader(
+      date: DateComponents(calendar: .init(identifier: .gregorian), year: 2024, month: 1).date,
+      workingDirectory: FileManager.default.temporaryDirectory
+    )
+
+    #expect(
+      downloader.dataURL().absoluteString == "https://registry.faa.gov/database/CS012024.zip"
+    )
+  }
+
+  @Test
   func `unzips a downloaded archive`() throws {
     let downloader = try makeDownloaderWithZippedFixture()
 

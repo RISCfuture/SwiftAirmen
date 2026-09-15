@@ -21,7 +21,9 @@ import ZIPFoundation
 /// `MMYYYY`.
 public class Downloader {
 
-  private static let urlFormat = "https://registry.faa.gov/database/CS%{M}%{Y}.zip"
+  private static let dataURLTemplate = URL.Template(
+    "https://registry.faa.gov/database/CS{month}{year}.zip"
+  )!
   private static let calendar = Calendar(identifier: .gregorian)
   private static let progressReportInterval = 1 << 20
 
@@ -60,13 +62,14 @@ public class Downloader {
     else {
       fatalError("Couldn’t get month/year from date \(date).")
     }
-    let monthStr = unsafe String(format: "%02d", month)
-    let yearStr = unsafe String(format: "%04d", year)
 
-    let url = Self.urlFormat.replacingOccurrences(of: "%{M}", with: monthStr)
-      .replacingOccurrences(of: "%{Y}", with: yearStr)
-
-    return URL(string: url)!
+    return URL(
+      template: Self.dataURLTemplate,
+      variables: [
+        .init("month"): .text(unsafe String(format: "%02d", month)),
+        .init("year"): .text(unsafe String(format: "%04d", year))
+      ]
+    )!
   }
 
   func zipfileLocation() -> URL {

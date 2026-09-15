@@ -28,6 +28,11 @@
   byte and file counts alongside the fraction. These are recorded on leaf
   managers only, since `summary(of:)` sums the whole subtree.
 
+### Changed
+
+- `Downloader.dataURL()` builds the archive URL with `URL.Template` rather than
+  two `replacingOccurrences(of:with:)` calls on a format string.
+
 ### Fixed
 
 - Download progress is reported about once per megabyte received instead of
