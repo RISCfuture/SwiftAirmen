@@ -1,0 +1,6 @@
+# `xcode-27` is GitHub's macOS 27 image label (there is no `macos-27`). actionlint
+# does not know it, so it is declared here to keep `runs-on` checks meaningful
+# rather than silenced repo-wide.
+self-hosted-runner:
+  labels:
+    - xcode-27

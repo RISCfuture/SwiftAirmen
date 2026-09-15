@@ -200,7 +200,7 @@ jobs:
 
       - uses: SwiftyLab/setup-swift@latest
         with:
-          swift-version: "6.3"
+          swift-version: "6.4"
 
       - name: Cache SwiftPM build products
         # Usually misses: a month between runs is well past the seven-day idle eviction. It earns
@@ -210,7 +210,7 @@ jobs:
           path: |
             .build
             ~/.cache/org.swift.swiftpm
-          key: swiftpm-editionwatch-ubuntu-latest-swift6.3-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-editionwatch-ubuntu-latest-swift6.4-${{ hashFiles('Package.resolved') }}
 
       - name: Build
         # Release: a debug build cannot get through 270 MB of CSV in any useful time.

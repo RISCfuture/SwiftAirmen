@@ -189,13 +189,21 @@ struct `Parser integration tests` {
   @Test
   func `parses with progress reporting enabled`() async throws {
     let parser = Parser(directory: testResourcesURL)
-    let progress = AsyncProgress()
+    let progress = ProgressManager(totalCount: 1)
 
-    _ = try await parser.parse(files: [.pilotBasic], progress: progress)
+    _ = try await parser.parse(
+      files: [.pilotBasic],
+      progress: progress.subprogress(assigningCount: 1)
+    )
 
-    // Just verify that parsing completes with progress tracking enabled
-    // We can't easily test the actual progress updates without access to the AsyncProgress internals
-    // Test passes if no errors thrown
+    // Row-count byte estimates never sum exactly to the file size, so the
+    // per-file leg is settled when the file is done; the whole parse must still
+    // read as finished.
+    #expect(progress.isFinished)
+    #expect(progress.fractionCompleted == 1.0)
+    #expect(progress.summary(of: \.totalFileCount) == 1)
+    #expect(progress.summary(of: \.completedFileCount) == 1)
+    #expect(progress.summary(of: \.totalByteCount) > 0)
   }
 
   @Test

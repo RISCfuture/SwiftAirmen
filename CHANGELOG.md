@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- Progress reporting now uses Foundation's `ProgressManager` (SF-0023) instead of
+  SwiftAirmen's own `Progress` struct. The data flow is inverted: rather than the
+  callee publishing snapshots *up* through an `AsyncStream`, the caller passes a
+  `Subprogress` *down*.
+  - `Parser.parse(files:progress:)` takes `progress: consuming Subprogress? = nil`
+    in place of `AsyncProgress?`.
+  - `Downloader.progress` (the `AsyncStream<Progress>` property) is gone;
+    `download(progress:)` accepts a `consuming Subprogress?` instead.
+  - `Progress` and `AsyncProgress` are removed. Read `completedCount`,
+    `fractionCompleted`, and `isFinished` from your own `ProgressManager`, which
+    is `Observable` — so progress can be followed with
+    `Observations.untilFinished` rather than by iterating a stream.
+- Raised the minimum deployment targets to macOS 27, iOS 27, tvOS 27, watchOS 27,
+  and visionOS 27, and the package tools-version to 6.4. `ProgressManager` has no
+  lower availability annotation, and `MacOSVersion.v27` requires
+  `_PackageDescription 6.4`.
+
+### Added
+
+- Parsing reports `totalByteCount`/`completedByteCount` and
+  `totalFileCount`/`completedFileCount` per CSV file, so a progress UI can show
+  byte and file counts alongside the fraction. These are recorded on leaf
+  managers only, since `summary(of:)` sums the whole subtree.
+
 ### Fixed
 
 - Download progress is reported about once per megabyte received instead of
