@@ -39,6 +39,9 @@
   once per byte, so observing a download no longer costs an update for every
   byte of a multi-hundred-megabyte archive. A final report is still made on
   completion.
+- `folderLocation()` returned a URL built from the *zipfile* name in its
+  pre-macOS 13 fallback branch, disagreeing with the primary branch. The floor is
+  now above that check, so the branch and the bug are gone.
 
 ## [3.2.1] - 2026-09-16
 

@@ -73,19 +73,11 @@ public class Downloader {
   }
 
   func zipfileLocation() -> URL {
-    if #available(macOS 13.0, *) {
-      return workingDirectory.appending(component: zipfileName(), directoryHint: .notDirectory)
-    } else {
-      return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: false)
-    }
+    workingDirectory.appending(component: zipfileName(), directoryHint: .notDirectory)
   }
 
   func folderLocation() -> URL {
-    if #available(macOS 13.0, *) {
-      return workingDirectory.appending(component: folderName(), directoryHint: .isDirectory)
-    } else {
-      return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: true)
-    }
+    workingDirectory.appending(component: folderName(), directoryHint: .isDirectory)
   }
 
   private func zipfileName() -> String { dataURL().lastPathComponent }
