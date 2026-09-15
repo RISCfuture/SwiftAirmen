@@ -23,7 +23,7 @@ struct Edition: Sendable, Equatable, CustomStringConvertible {
 
   // Printf rather than a `FormatStyle`: this string keys report files and
   // artifacts, so it has to stay byte-stable across locales.
-  var description: String { "\(year)-\(String(format: "%02d", month))" }
+  var description: String { "\(year)-\(unsafe String(format: "%02d", month))" }
 
   /// The edition for the month containing `date`.
   init(containing date: Date = Date()) {

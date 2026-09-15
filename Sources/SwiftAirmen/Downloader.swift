@@ -65,8 +65,8 @@ public class Downloader {
     else {
       fatalError("Couldn’t get month/year from date \(date).")
     }
-    let monthStr = String(format: "%02d", month)
-    let yearStr = String(format: "%04d", year)
+    let monthStr = unsafe String(format: "%02d", month)
+    let yearStr = unsafe String(format: "%04d", year)
 
     let url = Self.urlFormat.replacingOccurrences(of: "%{M}", with: monthStr)
       .replacingOccurrences(of: "%{Y}", with: yearStr)

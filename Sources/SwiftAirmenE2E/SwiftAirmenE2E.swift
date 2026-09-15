@@ -1,6 +1,6 @@
 import ArgumentParser
 import Foundation
-@preconcurrency import Progress
+@unsafe @preconcurrency import Progress
 
 @main
 struct SwiftAirmenE2E: AsyncParsableCommand {
