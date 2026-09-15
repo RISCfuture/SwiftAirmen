@@ -5,12 +5,15 @@ on:
   pull_request:
 jobs:
   periphery:
-    runs-on: macos-latest
+    runs-on: xcode-27
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
       - name: Record Swift version
         id: swift
         run: echo "version=$(swift --version | head -n1 | sed 's/[^[:alnum:].]/-/g')" >> "$GITHUB_OUTPUT"
@@ -21,7 +24,7 @@ jobs:
             .build
             ~/.cache/org.swift.swiftpm
             ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-periphery-macos-latest-${{ steps.swift.outputs.version }}-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-periphery-xcode-27-${{ steps.swift.outputs.version }}-${{ hashFiles('Package.resolved') }}
       - name: Install Periphery
         run: brew install periphery-pro/tap/periphery-cli
       - name: Run Periphery

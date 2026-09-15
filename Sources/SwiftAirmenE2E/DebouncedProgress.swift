@@ -1,22 +1,33 @@
 import Foundation
+import Observation
 import Progress
-import SwiftAirmen
 
+// Renders a `ProgressManager` to a terminal progress bar, throttled to one
+// update per second, always rendering the final value.
+//
+// `ProgressManager` is `Observable`, so the bar follows it by observation
+// instead of polling on a timer. `Observations.untilFinished` ends the sequence
+// on its own once the manager reports finished.
 actor DebouncedProgress {
   private static let renderInterval: TimeInterval = 1
 
   private var progressBar: ProgressBar?
   private var lastRenderAt = Date.distantPast
 
-  // Renders progress snapshots from the stream, throttled to one update per
-  // second, always rendering the final value.
-  func track(_ stream: AsyncStream<SwiftAirmen.Progress>) async {
-    var latest: SwiftAirmen.Progress?
-    for await progress in stream {
-      latest = progress
-      if shouldRender() { render(progress) }
+  func track(_ progress: ProgressManager) async {
+    let snapshots = Observations.untilFinished {
+      () -> Observations<Snapshot, Never>.Iteration in
+      progress.isFinished
+        ? .finish
+        : .next(Snapshot(completed: progress.completedCount, total: progress.totalCount))
     }
-    if let latest { render(latest) }
+
+    var latest: Snapshot?
+    for await snapshot in snapshots {
+      latest = snapshot
+      if shouldRender() { render(snapshot) }
+    }
+    render(Snapshot(completed: latest?.total ?? 1, total: latest?.total ?? 1))
   }
 
   private func shouldRender() -> Bool {
@@ -26,11 +37,17 @@ actor DebouncedProgress {
     return true
   }
 
-  private func render(_ progress: SwiftAirmen.Progress) {
-    let total = Int(progress.total)
+  private func render(_ snapshot: Snapshot) {
+    // An indeterminate manager has no total to size the bar against.
+    guard let total = snapshot.total, total > 0 else { return }
     if progressBar?.count != total {
       progressBar = ProgressBar(count: total)
     }
-    progressBar?.setValue(Int(progress.completed))
+    progressBar?.setValue(snapshot.completed)
+  }
+
+  private struct Snapshot: Sendable {
+    let completed: Int
+    let total: Int?
   }
 }

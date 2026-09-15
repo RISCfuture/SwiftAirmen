@@ -9,9 +9,10 @@ import ZIPFoundation
 /// https://www.faa.gov/licenses_certificates/airmen_certification/releasable_airmen_download/
 /// for more information about the structure and contents of the file.
 ///
-/// Use the ``download()`` method to download the airmen database. This method uses
-/// Swift's async/await and returns a file URL pointing to the extracted CSV files.
-/// Iterate the ``progress`` stream to observe download progress.
+/// Use the ``download(progress:)`` method to download the airmen database. This
+/// method uses Swift's async/await and returns a file URL pointing to the
+/// extracted CSV files. To observe download progress, hand it a `Subprogress`
+/// from your own `ProgressManager`.
 ///
 /// The file downloaded by this class can be used by ``Parser`` to parse airmen
 /// records. See <doc:GettingStarted> for an example.
@@ -20,18 +21,15 @@ import ZIPFoundation
 /// `MMYYYY`.
 public class Downloader {
 
-  private static let urlFormat = "https://registry.faa.gov/database/CS%{M}%{Y}.zip"
+  private static let dataURLTemplate = URL.Template(
+    "https://registry.faa.gov/database/CS{month}{year}.zip"
+  )!
   private static let calendar = Calendar(identifier: .gregorian)
   private static let progressReportInterval = 1 << 20
 
   private let date: Date
-  private let progressContinuation: AsyncStream<Progress>.Continuation
   let session = URLSession(configuration: .ephemeral)
   let workingDirectory: URL
-
-  /// A stream of download ``Progress`` snapshots, emitting periodically as
-  /// bytes arrive and finishing when the download completes.
-  public let progress: AsyncStream<Progress>
 
   /**
    Creates a new instance that will download airmen data for a given date.
@@ -47,7 +45,6 @@ public class Downloader {
     workingDirectory: URL? = nil
   ) throws {
     self.date = date ?? Date()
-    (progress, progressContinuation) = AsyncStream<Progress>.makeStream()
     self.workingDirectory =
       try workingDirectory
       ?? FileManager.default.url(
@@ -65,29 +62,22 @@ public class Downloader {
     else {
       fatalError("Couldn’t get month/year from date \(date).")
     }
-    let monthStr = unsafe String(format: "%02d", month)
-    let yearStr = unsafe String(format: "%04d", year)
 
-    let url = Self.urlFormat.replacingOccurrences(of: "%{M}", with: monthStr)
-      .replacingOccurrences(of: "%{Y}", with: yearStr)
-
-    return URL(string: url)!
+    return URL(
+      template: Self.dataURLTemplate,
+      variables: [
+        .init("month"): .text(unsafe String(format: "%02d", month)),
+        .init("year"): .text(unsafe String(format: "%04d", year))
+      ]
+    )!
   }
 
   func zipfileLocation() -> URL {
-    if #available(macOS 13.0, *) {
-      return workingDirectory.appending(component: zipfileName(), directoryHint: .notDirectory)
-    } else {
-      return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: false)
-    }
+    workingDirectory.appending(component: zipfileName(), directoryHint: .notDirectory)
   }
 
   func folderLocation() -> URL {
-    if #available(macOS 13.0, *) {
-      return workingDirectory.appending(component: folderName(), directoryHint: .isDirectory)
-    } else {
-      return workingDirectory.appendingPathComponent(zipfileName(), isDirectory: true)
-    }
+    workingDirectory.appending(component: folderName(), directoryHint: .isDirectory)
   }
 
   private func zipfileName() -> String { dataURL().lastPathComponent }
@@ -98,20 +88,21 @@ public class Downloader {
    Downloads and unzips the airmen database to a directory. This directory can
    be used by ``Parser`` to return airmen records.
 
+   - Parameter progress: Optional progress sink, reporting bytes received. Stays
+   indeterminate until the server declares a content length.
    - Returns: The URL of the downloaded airmen database.
    */
-  public func download() async throws -> URL {
-    let zipfile = try await _download()
+  public func download(progress: consuming Subprogress? = nil) async throws -> URL {
+    let zipfile = try await _download(progress: progress?.start(totalCount: nil))
     return try unzip(url: zipfile)
   }
 
-  private func _download() async throws -> URL {
-    defer { progressContinuation.finish() }
-
+  private func _download(progress: ProgressManager?) async throws -> URL {
     let request = URLRequest(url: dataURL())
-    let data = try await fetch(request)
+    let data = try await fetch(request, progress: progress)
 
     try data.write(to: zipfileLocation())
+    progress?.finish()
     return zipfileLocation()
   }
 
@@ -129,30 +120,43 @@ public class Downloader {
   // `URLSession.bytes(for:)` isn’t available in FoundationNetworking, so Linux falls back to a
   // single-shot download without incremental progress.
   #if canImport(Darwin)
-    private func fetch(_ request: URLRequest) async throws -> Data {
+    private func fetch(_ request: URLRequest, progress: ProgressManager?) async throws -> Data {
       let (bytes, response) = try await session.bytes(for: request)
       let httpResponse = try validate(response, for: request)
 
       let total = httpResponse.expectedContentLength
+      if total > 0 {
+        progress?.setTotalCount(Int(total))
+        progress?.totalByteCount = UInt64(total)
+      }
       var data = Data(capacity: Int(total))
       var countAtLastReport = 0
+
+      // Reporting once per megabyte rather than once per byte keeps observing a
+      // multi-hundred-megabyte archive from costing an update per byte.
+      func report() {
+        countAtLastReport = data.count
+        progress?.setCompletedCount(data.count)
+        progress?.completedByteCount = UInt64(data.count)
+      }
+
       for try await byte in bytes {
         data.append(byte)
-        if data.count - countAtLastReport >= Self.progressReportInterval {
-          countAtLastReport = data.count
-          progressContinuation.yield(.init(Int64(data.count), of: total))
-        }
+        if data.count - countAtLastReport >= Self.progressReportInterval { report() }
       }
-      if data.count != countAtLastReport {
-        progressContinuation.yield(.init(Int64(data.count), of: total))
-      }
+      if data.count != countAtLastReport { report() }
       return data
     }
   #else
-    private func fetch(_ request: URLRequest) async throws -> Data {
+    private func fetch(_ request: URLRequest, progress: ProgressManager?) async throws -> Data {
       let (data, response) = try await session.data(for: request)
-      let httpResponse = try validate(response, for: request)
-      progressContinuation.yield(.init(Int64(data.count), of: httpResponse.expectedContentLength))
+      _ = try validate(response, for: request)
+      // One indivisible unit: without a streaming API there is nothing to
+      // report until the whole body has arrived.
+      progress?.totalByteCount = UInt64(data.count)
+      progress?.completedByteCount = UInt64(data.count)
+      progress?.setTotalCount(1)
+      progress?.setCompletedCount(1)
       return data
     }
   #endif

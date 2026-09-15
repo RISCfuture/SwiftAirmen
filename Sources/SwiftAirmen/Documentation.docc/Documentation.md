@@ -43,11 +43,6 @@ Be sure to include SwiftAirmen as a dependency in your `.target` entry.
 - ``Certificate``
 - ``Medical``
 
-### Progress
-
-- ``Progress``
-- ``AsyncProgress``
-
 ### Errors
 
 - ``Errors``

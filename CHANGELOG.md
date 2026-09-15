@@ -2,12 +2,46 @@
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- Progress reporting now uses Foundation's `ProgressManager` (SF-0023) instead of
+  SwiftAirmen's own `Progress` struct. The data flow is inverted: rather than the
+  callee publishing snapshots *up* through an `AsyncStream`, the caller passes a
+  `Subprogress` *down*.
+  - `Parser.parse(files:progress:)` takes `progress: consuming Subprogress? = nil`
+    in place of `AsyncProgress?`.
+  - `Downloader.progress` (the `AsyncStream<Progress>` property) is gone;
+    `download(progress:)` accepts a `consuming Subprogress?` instead.
+  - `Progress` and `AsyncProgress` are removed. Read `completedCount`,
+    `fractionCompleted`, and `isFinished` from your own `ProgressManager`, which
+    is `Observable` — so progress can be followed with
+    `Observations.untilFinished` rather than by iterating a stream.
+- Raised the minimum deployment targets to macOS 27, iOS 27, tvOS 27, watchOS 27,
+  and visionOS 27, and the package tools-version to 6.4. `ProgressManager` has no
+  lower availability annotation, and `MacOSVersion.v27` requires
+  `_PackageDescription 6.4`.
+
+### Added
+
+- Parsing reports `totalByteCount`/`completedByteCount` and
+  `totalFileCount`/`completedFileCount` per CSV file, so a progress UI can show
+  byte and file counts alongside the fraction. These are recorded on leaf
+  managers only, since `summary(of:)` sums the whole subtree.
+
+### Changed
+
+- `Downloader.dataURL()` builds the archive URL with `URL.Template` rather than
+  two `replacingOccurrences(of:with:)` calls on a format string.
+
 ### Fixed
 
-- `Downloader.progress` now emits a snapshot about once per megabyte received
-  instead of once per byte, so observing a download no longer costs an
-  `AsyncStream` yield for every byte of a multi-hundred-megabyte archive. A
-  final snapshot is still emitted when the download completes.
+- Download progress is reported about once per megabyte received instead of
+  once per byte, so observing a download no longer costs an update for every
+  byte of a multi-hundred-megabyte archive. A final report is still made on
+  completion.
+- `folderLocation()` returned a URL built from the *zipfile* name in its
+  pre-macOS 13 fallback branch, disagreeing with the primary branch. The floor is
+  now above that check, so the branch and the bug are gone.
 
 ## [3.2.0] - 2026-09-14
 

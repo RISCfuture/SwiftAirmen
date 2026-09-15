@@ -21,21 +21,24 @@ class Runner {
 
   private func download() async throws -> URL {
     let downloader = try Downloader()
-    let progressStream = downloader.progress
+    let progress = ProgressManager(totalCount: 1)
     let bar = DebouncedProgress()
-    async let tracking: Void = bar.track(progressStream)
-    let folder = try await downloader.download()
+    async let tracking: Void = bar.track(progress)
+    let folder = try await downloader.download(
+      progress: progress.subprogress(assigningCount: 1)
+    )
     await tracking
     return folder
   }
 
   private func parse(folder: URL) async throws -> [String: Airman] {
     let parser = Parser(directory: folder)
-    let progress = AsyncProgress()
-    let progressStream = progress.updates
+    let progress = ProgressManager(totalCount: 1)
     let bar = DebouncedProgress()
-    async let tracking: Void = bar.track(progressStream)
-    let (airmen, errors) = try await parser.parse(progress: progress)
+    async let tracking: Void = bar.track(progress)
+    let (airmen, errors) = try await parser.parse(
+      progress: progress.subprogress(assigningCount: 1)
+    )
     await tracking
     reportErrors(errors)
     return airmen
