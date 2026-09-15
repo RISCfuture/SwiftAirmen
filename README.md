@@ -4,7 +4,7 @@
 
 [![Documentation](https://github.com/RISCfuture/SwiftAirmen/actions/workflows/doc.yml/badge.svg)](https://riscfuture.github.io/SwiftAirmen/)
 
-[![Swift 6.3+](https://img.shields.io/badge/Swift-6.3+-orange.svg)](https://swift.org)
+[![Swift 6.4+](https://img.shields.io/badge/Swift-6.4+-orange.svg)](https://swift.org)
 
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-blue.svg)](https://swift.org)
 
@@ -18,8 +18,9 @@ use with this library.
 
 ## Requirements
 
-This library was built for use with Swift 6.3 or newer on any platform or
-architecture.
+This library was built for use with Swift 6.4 or newer. On Apple platforms it
+requires macOS 27, iOS 27, tvOS 27, watchOS 27, or visionOS 27 or newer, because
+it reports progress through Foundation's `ProgressManager`.
 
 ## Installation
 
@@ -49,7 +50,15 @@ let downloader = SwiftAirmen.Downloader()
 let directoryURL = try await downloader.download()
 ```
 
-`Downloader` uses Swift's async/await for asynchronous operations.
+`Downloader` uses Swift's async/await for asynchronous operations. To observe
+download progress, pass a `Subprogress` from your own `ProgressManager`:
+
+``` swift
+let progress = ProgressManager(totalCount: 1)
+let directoryURL = try await downloader.download(
+    progress: progress.subprogress(assigningCount: 1)
+)
+```
 
 To parse airmen records, create an instance of `Parser` and give it the path
 to your downloaded CSV records:

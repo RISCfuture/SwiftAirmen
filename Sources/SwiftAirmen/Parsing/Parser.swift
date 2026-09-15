@@ -15,7 +15,8 @@ import StreamingCSV
 ///
 /// Call the ``parse(files:progress:)`` method to parse the airman database. The
 /// method uses Swift's async/await concurrency and returns an
-/// ``AirmanDictionary`` along with any non-fatal errors encountered.
+/// ``AirmanDictionary`` along with any non-fatal errors encountered. To observe
+/// progress, hand it a `Subprogress` from your own `ProgressManager`.
 ///
 /// You can use ``Downloader`` to download the CSV file automatically. See
 /// <doc:GettingStarted> for an example.
@@ -52,17 +53,12 @@ public final class Parser: Sendable {
 
   // MARK: - Private Methods
 
-  /// Calculates the total file size across all specified files for progress tracking
-  private func calculateTotalFileSize(for files: [File]) throws -> Int64 {
-    var totalBytes: Int64 = 0
-    for file in files {
-      let url = self.url(for: file)
-      if FileManager.default.fileExists(atPath: url.path) {
-        let fileAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
-        totalBytes += Int64(fileAttributes[.size] as? Int ?? 0)
-      }
+  /// The size of a file in bytes, or zero when it is missing or unreadable.
+  private func fileSize(of url: URL) -> Int {
+    guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else {
+      return 0
     }
-    return totalBytes
+    return attributes[.size] as? Int ?? 0
   }
 
   /**
@@ -77,35 +73,47 @@ public final class Parser: Sendable {
 
    - Parameter files: The files to parse. This array should be unique,
    otherwise parsing will be unnecessarily slower.
-   - Parameter progress: Create an instance of ``AsyncProgress`` and pass it
-   here if you wish to track parsing progress. Progress is reported based on
-   total bytes processed across all files.
+   - Parameter progress: Pass a `Subprogress` from your own `ProgressManager` if
+   you wish to track parsing progress. Each file is weighted by its byte size, so
+   the reported fraction tracks the work remaining rather than the number of
+   files left.
    - Returns: A dictionary mapping airman identifiers to their records, and the
    non-fatal errors encountered while parsing (an empty array if none).
    */
   public func parse(
     files: [File] = File.allCases,
-    progress: AsyncProgress? = nil
+    progress: consuming Subprogress? = nil
   ) async throws -> (airmen: AirmanDictionary, errors: [any Error]) {
 
     let db = AirmanDatabase()
     let errorLog = ErrorLog()
 
-    let totalBytes = try calculateTotalFileSize(for: files)
-    if let progress {
-      await progress.setTotalBytes(totalBytes)
+    let sizes = files.map { fileSize(of: url(for: $0)) }
+    let totalBytes = sizes.reduce(0, +)
+
+    // Files are parsed concurrently, so each gets its own `ProgressManager`
+    // wired in by reporter — a `Subprogress` is noncopyable and could not be
+    // captured by the task group's escaping closures.
+    // Byte and file counts are recorded on the leaves only: `summary(of:)` sums
+    // the whole subtree, so a value on the parent as well would double-count.
+    let parent = progress?.start(totalCount: totalBytes > 0 ? totalBytes : nil)
+    func leaf(ofSize size: Int) -> ProgressManager? {
+      let child = parent?.child(assigningCount: size, totalCount: size > 0 ? size : nil)
+      child?.totalByteCount = UInt64(size)
+      child?.totalFileCount = 1
+      return child
+    }
+
+    let fileProgress = zip(files, sizes).map { file, size in
+      (file: file, progress: leaf(ofSize: size))
     }
 
     await withTaskGroup(of: Void.self) { group in
-      for file in files {
+      for (file, progress) in fileProgress {
         group.addTask { [self] in
           await parseFile(file, into: db, progress: progress, errorLog: errorLog)
         }
       }
-    }
-
-    if let progress {
-      await progress.finish()
     }
 
     return (airmen: await db.merged(), errors: await errorLog.collect())
@@ -115,10 +123,19 @@ public final class Parser: Sendable {
   private func parseFile(
     _ file: File,
     into database: AirmanDatabase,
-    progress: AsyncProgress?,
+    progress: ProgressManager?,
     errorLog: ErrorLog
   ) async {
     let url = url(for: file)
+    let size = fileSize(of: url)
+
+    // Whether the file parses or not, its share of the total is settled, so a
+    // missing or malformed file cannot leave the overall fraction short of 1.
+    defer {
+      progress?.finish()
+      progress?.completedByteCount = UInt64(size)
+      progress?.completedFileCount = 1
+    }
 
     guard FileManager.default.fileExists(atPath: url.path) else {
       await errorLog.record(Errors.fileNotFound(url: url))
@@ -130,11 +147,7 @@ public final class Parser: Sendable {
       let rowParser = rowParserType.init()
 
       let reader = ParallelCSVReader(url: url, delimiter: ",", quote: "\"", escape: "\"")
-
-      let fileAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
-      let fileSize = Int64(fileAttributes[.size] as? Int ?? 0)
-
-      let tracker = ProgressTracker(fileSize: fileSize, progress: progress)
+      let tracker = ProgressTracker(fileSize: size, progress: progress)
 
       try await reader.processRows { [self] fields in
         await processRow(
@@ -145,8 +158,6 @@ public final class Parser: Sendable {
           errorLog: errorLog
         )
       }
-
-      await tracker.finalize()
     } catch {
       await errorLog.record(error)
     }
@@ -190,43 +201,39 @@ public final class Parser: Sendable {
 
 // MARK: - ProgressTracker
 
-// Actor that safely manages progress updates for file parsing
+// Estimates a file's byte progress from the number of rows read, since
+// `ParallelCSVReader` reports rows rather than file offsets. Rows arrive from
+// concurrent chunk workers, so the running count is actor-isolated.
+//
+// The estimate only ever moves progress forward and is clamped to the file's
+// size; `Parser.parseFile` settles the remainder when the file is done.
 private actor ProgressTracker {
-  private var rowCount = 0
-  private let updateInterval = 100
-  private let fileSize: Int64
-  private let progress: AsyncProgress?
-  private var bytesReported: Int64 = 0
+  private static let updateInterval = 100
 
-  init(fileSize: Int64, progress: AsyncProgress?) {
+  // Typical row width across the FAA distribution.
+  private static let estimatedBytesPerRow = 150
+
+  private let fileSize: Int
+  private let progress: ProgressManager?
+  private var rowCount = 0
+  private var bytesReported = 0
+
+  init(fileSize: Int, progress: ProgressManager?) {
     self.fileSize = fileSize
     self.progress = progress
   }
 
-  func incrementRow() async {
+  func incrementRow() {
     rowCount += 1
-    if rowCount.isMultiple(of: updateInterval) {
-      if let progress {
-        // Report progress proportional to rows processed
-        // Assume average of 150 bytes per row (typical for FAA data)
-        let bytesPerBatch: Int64 = 150 * Int64(updateInterval)
-        let bytesToReport = min(bytesPerBatch, fileSize - bytesReported)
-        if bytesToReport > 0 {
-          await progress.addBytes(bytesToReport)
-          bytesReported += bytesToReport
-        }
-      }
-    }
-  }
+    guard let progress, rowCount.isMultiple(of: Self.updateInterval) else { return }
 
-  func finalize() async {
-    // Report any remaining bytes
-    if let progress {
-      let remaining = fileSize - bytesReported
-      if remaining > 0 {
-        await progress.addBytes(remaining)
-      }
-    }
+    let batch = Self.estimatedBytesPerRow * Self.updateInterval
+    let remaining = fileSize - bytesReported
+    guard remaining > 0 else { return }
+
+    bytesReported += min(batch, remaining)
+    progress.setCompletedCount(bytesReported)
+    progress.completedByteCount = UInt64(bytesReported)
   }
 }
 

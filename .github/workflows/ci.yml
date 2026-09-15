@@ -1,12 +1,18 @@
 # CI Matrix Policy
 #
-# Category A (tools-version 6.2 + macOS 26 min): macos-26 + Swift 6.2
-# Category B (tools-version 6.2 + older macOS):  macos-15 + 6.2, macos-26 + 6.2
-# Category C (tools-version 6.3):                macos-15 + 6.3/6.4, macos-26 + 6.3/6.4
-# Linux:                                          ubuntu + Swift 6.3/6.4
+# SwiftAirmen declares tools-version 6.4 and a macOS 27 / iOS 27 / tvOS 27 /
+# watchOS 27 / visionOS 27 floor, because Foundation's `ProgressManager`
+# (SF-0023) carries no lower availability annotation.
 #
-# This package is Category C. StreamingCSV requires tools-version 6.3, so Swift
-# 6.1 and 6.2 can no longer resolve it.
+# Darwin: the macOS 27 SDK is only on GitHub's `xcode-27` image (there is no
+# `macos-27` label), and that image is selected with `maxim-lobanov/setup-xcode`
+# rather than `SwiftyLab/setup-swift`. The image ships a single prerelease Xcode
+# 27, so the toolchain is picked with `xcode-version: latest`. `macos-15` and
+# `macos-26` cannot supply a macOS 27 SDK at all, so those legs are gone.
+#
+# Linux: `ProgressManager` is `@available(FoundationPreview 6.4)` in
+# swift-foundation, so it does not exist on the 6.3 toolchain. Only the Swift 6.4
+# Linux leg can build this package.
 
 name: CI
 
@@ -21,30 +27,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
-    name: Build and Test
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15
-            swift: "6.3"
-          - os: macos-15
-            swift: "6.4"
-          - os: macos-26
-            swift: "6.3"
-          - os: macos-26
-            swift: "6.4"
-          - os: ubuntu-latest
-            swift: "6.3"
-          - os: ubuntu-latest
-            swift: "6.4"
-    runs-on: ${{ matrix.os }}
+  tests-darwin:
+    name: Build and Test (macOS)
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v6
-      - uses: SwiftyLab/setup-swift@latest
+      - uses: maxim-lobanov/setup-xcode@v1
         with:
-          swift-version: ${{ matrix.swift }}
+          xcode-version: latest
       - name: Cache SwiftPM build products
         uses: actions/cache@v6
         with:
@@ -52,7 +42,26 @@ jobs:
             .build
             ~/.cache/org.swift.swiftpm
             ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-test-${{ matrix.os }}-swift${{ matrix.swift }}-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-test-xcode-27-${{ hashFiles('Package.resolved') }}
+      - name: Build
+        run: swift build -v
+      - name: Test
+        run: swift test -v
+  tests-linux:
+    name: Build and Test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: "6.4"
+      - name: Cache SwiftPM build products
+        uses: actions/cache@v6
+        with:
+          path: |
+            .build
+            ~/.cache/org.swift.swiftpm
+          key: swiftpm-test-ubuntu-latest-swift6.4-${{ hashFiles('Package.resolved') }}
       - name: Build
         run: swift build -v
       - name: Test
@@ -64,7 +73,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: SwiftyLab/setup-swift@latest
         with:
-          swift-version: "6.3"
+          swift-version: "6.4"
       - name: Cache SwiftPM build products
         uses: actions/cache@v6
         with:
@@ -72,7 +81,7 @@ jobs:
             .build
             ~/.cache/org.swift.swiftpm
             ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-docs-ubuntu-latest-swift6.3-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-docs-ubuntu-latest-swift6.4-${{ hashFiles('Package.resolved') }}
       - name: Build documentation
         run: |
           swift package \

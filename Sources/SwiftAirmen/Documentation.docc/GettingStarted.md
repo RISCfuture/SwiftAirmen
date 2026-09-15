@@ -14,7 +14,15 @@ let downloader = SwiftAirmen.Downloader()
 let directoryURL = try await downloader.download()
 ```
 
-``Downloader`` uses Swift's async/await for asynchronous operations.
+``Downloader`` uses Swift's async/await for asynchronous operations. To observe
+download progress, pass a `Subprogress` from your own `ProgressManager`:
+
+``` swift
+let progress = ProgressManager(totalCount: 1)
+let directoryURL = try await downloader.download(
+    progress: progress.subprogress(assigningCount: 1)
+)
+```
 
 To parse airmen records, create an instance of ``Parser`` and give it the path
 to your downloaded CSV records:
@@ -29,6 +37,24 @@ let (airmen, errors) = try await parser.parse()
 async/await and returns a ``Parser/AirmanDictionary`` together with any
 non-fatal errors. Each offending row is skipped but parsing is not aborted, and
 the errors are returned alongside the records.
+
+It accepts a `Subprogress` as well. `ProgressManager` is `Observable`, so you can
+observe it rather than poll it:
+
+``` swift
+let progress = ProgressManager(totalCount: 1)
+let monitor = Task {
+    for await percent in Observations.untilFinished({
+        progress.isFinished ? .finish : .next(Int(progress.fractionCompleted * 100))
+    }) {
+        print("\(percent)%")
+    }
+}
+let (airmen, errors) = try await parser.parse(
+    progress: progress.subprogress(assigningCount: 1)
+)
+await monitor.value
+```
 
 An ``Airman`` record contains information about the airman and their
 certificates:
