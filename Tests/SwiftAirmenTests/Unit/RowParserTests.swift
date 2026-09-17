@@ -235,7 +235,7 @@ struct `NonPilotCertRowParser tests` {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000001", "FRANK", "HARRIS", "M", "", "",
-      "M/A", "M/P", "", ""
+      "M/AIRFR", "M/POWER", "", ""
     ]
 
     let airman = try #require(try parser.parse(fields: fields))
@@ -254,8 +254,8 @@ struct `NonPilotCertRowParser tests` {
   func `parses a rigger with level requirements`() throws {
     let parser = NonPilotCertRowParser()
     let fields = [
-      "A0000002", "GRACE", "CLARK", "W", "M", "",
-      "M/B", "S/S", "M/C", "S/L"
+      "A0000002", "GRACE", "CLARK", "W", "U", "",
+      "U/BACK", "W/SEAT", "U/CHEST", "W/LAP"
     ]
 
     let airman = try #require(try parser.parse(fields: fields))
@@ -278,7 +278,7 @@ struct `NonPilotCertRowParser tests` {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000003", "HENRY", "LEWIS", "G", "", "",
-      "G/BGI", "G/AGI", "G/IGI", ""
+      "G/BASIC", "G/ADV", "G/INST", ""
     ]
 
     let airman = try #require(try parser.parse(fields: fields))
@@ -299,7 +299,7 @@ struct `NonPilotCertRowParser tests` {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000004", "IDA", "ROBINSON", "L", "", "",
-      "L/I", "L/M", "", ""
+      "L/INSPT", "L/MAINT", "", ""
     ]
 
     let airman = try #require(try parser.parse(fields: fields))
@@ -319,7 +319,7 @@ struct `NonPilotCertRowParser tests` {
     let parser = NonPilotCertRowParser()
     let fields = [
       "A0000005", "JACK", "THOMPSON", "W", "", "",
-      "M/B", "", "", ""
+      "U/BACK", "", "", ""
     ]
 
     #expect {

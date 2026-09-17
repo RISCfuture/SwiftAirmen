@@ -34,6 +34,10 @@ public final class Parser: Sendable {
     .nonPilotCert: NonPilotCertRowParser.self
   ]
 
+  // Every file in the distribution opens with a row naming its columns, and no
+  // airman identifier can collide with that first column name.
+  private static let headerFirstField = "UNIQUE ID"
+
   /// The directory that the parser will look for CSV files in.
   public let directory: URL
 
@@ -161,6 +165,7 @@ public final class Parser: Sendable {
     errorLog: ErrorLog
   ) async {
     await tracker.incrementRow()
+    guard !isHeader(fields: fields) else { return }
 
     do {
       if let airman = try rowParser.parse(fields: fields) {
@@ -169,6 +174,10 @@ public final class Parser: Sendable {
     } catch {
       await errorLog.record(error)
     }
+  }
+
+  private func isHeader(fields: [String]) -> Bool {
+    fields.first?.trimmingCharacters(in: .whitespacesAndNewlines) == Self.headerFirstField
   }
 
   /// A CSV file within an airman database distribution to parse.

@@ -1,5 +1,5 @@
 {
-  "originHash" : "a341568c90ec22054787f5ac4e083bc01607808d9a34bcb4c024f87c299ef2b4",
+  "originHash" : "589d64b3311640130c79373fc9f3b3a2ec1e67cdec22c9007c27f64e8a67e469",
   "pins" : [
     {
       "identity" : "progress.swift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RISCfuture/StreamingCSV",
       "state" : {
-        "revision" : "c45b96da50605c3d83bed31fe7934fdf583467ab",
-        "version" : "2.1.0"
+        "revision" : "8720a28295430c9b08467fd74113dfcd8aa779dd",
+        "version" : "2.1.2"
       }
     },
     {

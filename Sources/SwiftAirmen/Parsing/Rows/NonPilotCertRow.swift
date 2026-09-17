@@ -60,20 +60,20 @@ struct NonPilotCertRow {
     case mechanic = "M"
     case controlTowerOperator = "T"
     case repairman = "R"
-    case repairmanExperimental = "Q"
+    case repairmanExperimental = "I"
     case repairmanLightSport = "L"
     case rigger = "W"
     case dispatcher = "D"
     case navigator = "N"
-    case navigatorLessee = "K"
+    case navigatorLessee = "J"
   }
 
   enum Level {
     case rigger(_ level: Rigger)
 
     enum Rigger: String {
-      case master = "M"
-      case senior = "S"
+      case master = "U"
+      case senior = "W"
     }
   }
 
@@ -146,26 +146,26 @@ struct NonPilotCertRow {
     }
 
     enum GroundInstructor: String {
-      case basic = "BGI"
-      case advanced = "AGI"
-      case instrument = "IGI"
+      case basic = "BASIC"
+      case advanced = "ADV"
+      case instrument = "INST"
     }
 
     enum Mechanic: String {
-      case airframe = "A"
-      case powerplant = "P"
+      case airframe = "AIRFR"
+      case powerplant = "POWER"
     }
 
     enum RepairmanLightSport: String {
-      case inspection = "I"
-      case maintenance = "M"
+      case inspection = "INSPT"
+      case maintenance = "MAINT"
     }
 
     enum Rigger: String {
-      case back = "B"
-      case chest = "C"
-      case lap = "L"
-      case seat = "S"
+      case back = "BACK"
+      case chest = "CHEST"
+      case lap = "LAP"
+      case seat = "SEAT"
     }
   }
 }

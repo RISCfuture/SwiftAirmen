@@ -65,7 +65,7 @@ struct `error handling tests` {
     let riggerParser = NonPilotCertRowParser()
     let riggerFields = [
       "A0000002", "JANE", "SMITH", "W", "", "",  // Rigger without level
-      "M/B", "", "", ""
+      "U/BACK", "", "", ""
     ]
 
     #expect {

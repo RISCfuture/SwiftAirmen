@@ -1,5 +1,29 @@
 # Change Log
 
+## [Unreleased]
+
+### Changed
+
+- Raised the StreamingCSV floor to 2.1.2, whose parallel reader no longer splits
+  the row straddling each chunk boundary. Parsing the distribution had been
+  picking up a phantom certificate from every such fragment — an airman holding
+  `PPL (GL)` also came back holding an empty `PPL ()`.
+
+### Fixed
+
+- Non-pilot certificate rating, rigger level, and certificate type codes are
+  matched against the values the FAA actually publishes. The codes were
+  abbreviated when parsing moved to StreamingCSV, which made every mechanic,
+  ground instructor, repairman light-sport, and rigger rating in the
+  distribution unparseable — 338,849 errors against the September 2026 edition.
+  Mechanic ratings are `AIRFR`/`POWER`, ground instructor ratings
+  `BASIC`/`ADV`/`INST`, repairman light-sport ratings `INSPT`/`MAINT`, rigger
+  ratings `BACK`/`CHEST`/`LAP`/`SEAT`, rigger levels `U`/`W`, and the
+  experimental-repairman and navigator-lessee certificate types `I` and `J`.
+- The header row that opens each CSV file is skipped rather than parsed as an
+  airman, which had been adding a spurious record keyed `UNIQUE ID` and an
+  `unknownCertificateType` error for each certificate file.
+
 ## [3.2.0] - 2026-09-14
 
 ### Changed
