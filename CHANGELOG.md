@@ -24,6 +24,18 @@
   airman, which had been adding a spurious record keyed `UNIQUE ID` and an
   `unknownCertificateType` error for each certificate file.
 
+### Internal
+
+- A scheduled `Airmen Edition Watch` workflow parses each monthly edition as the
+  FAA publishes it, and opens an issue when a row fails to parse or when a count
+  moves far enough from the previous edition to suggest a silent schema change.
+  A one-byte range GET gates the download, and the report artifact for an edition
+  doubles as the record that it was already checked.
+- `SwiftAirmenE2E` takes `--edition` to choose a month, honors
+  `--working-directory`, writes a JSON report with `--report`, compares counts
+  against an earlier report with `--baseline`, and exits nonzero when anything
+  failed to parse.
+
 ## [3.2.0] - 2026-09-14
 
 ### Changed

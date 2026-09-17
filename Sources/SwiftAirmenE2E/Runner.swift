@@ -1,26 +1,55 @@
 import Foundation
 import SwiftAirmen
 
-class Runner {
-  func run() async throws {
-    print("Downloading…")
-    let folder = try await download()
+/// Downloads one edition of the airman database, parses it, and reports what it found.
+struct Runner {
+  let edition: Edition
+  let workingDirectory: URL?
+  let errorSampleLimit: Int
 
-    print("Processing…")
-    let startTime = Date()
-    let airmen = try await parse(folder: folder)
-    let parseTime = Date().timeIntervalSince(startTime)
+  /// Runs the check. A download or parse that throws ends the run but still
+  /// produces a report, which is how the failure gets recorded.
+  func run() async -> RunReport {
+    let startedAt = Date()
+    func elapsed() -> Int { Int(Date().timeIntervalSince(startedAt).rounded()) }
 
-    print("Statistics")
-    print("  Total airmen: \(airmen.count)")
-    print("  Processing time: \(String(format: "%.2f", parseTime)) seconds")
-    print("")
+    do {
+      print("Downloading \(edition)…")
+      let folder = try await download()
 
-    testResult(airmen: airmen)
+      print("Processing…")
+      let (airmen, errors) = try await parse(folder: folder)
+
+      describeMostCertificated(among: airmen)
+      return RunReport(
+        edition: edition,
+        durationSeconds: elapsed(),
+        airmanCount: airmen.count,
+        certificateCounts: certificateCounts(in: airmen),
+        errorCounts: errorCounts(in: errors),
+        errorSamples: errorSamples(from: errors)
+      )
+    } catch {
+      return RunReport(
+        edition: edition,
+        durationSeconds: elapsed(),
+        abortReason: error.localizedDescription
+      )
+    }
   }
 
   private func download() async throws -> URL {
-    let downloader = try Downloader()
+    // `Downloader` writes into this directory rather than creating it, and a
+    // missing one surfaces as the archive itself being absent.
+    if let workingDirectory {
+      try FileManager.default.createDirectory(
+        at: workingDirectory,
+        withIntermediateDirectories: true
+      )
+    }
+    let downloader = try Downloader(date: edition.date, workingDirectory: workingDirectory)
+    // Read before the task group forms: reaching into `downloader` from the
+    // concurrent branch would send it across isolation.
     let progressStream = downloader.progress
     let bar = DebouncedProgress()
     async let tracking: Void = bar.track(progressStream)
@@ -29,32 +58,51 @@ class Runner {
     return folder
   }
 
-  private func parse(folder: URL) async throws -> [String: Airman] {
+  private func parse(folder: URL) async throws -> (Parser.AirmanDictionary, [any Error]) {
     let parser = Parser(directory: folder)
     let progress = AsyncProgress()
-    let progressStream = progress.updates
     let bar = DebouncedProgress()
-    async let tracking: Void = bar.track(progressStream)
-    let (airmen, errors) = try await parser.parse(progress: progress)
+    async let tracking: Void = bar.track(progress.updates)
+    let result = try await parser.parse(progress: progress)
     await tracking
-    reportErrors(errors)
-    return airmen
+    return result
   }
 
-  private func reportErrors(_ errors: [any Error]) {
-    for error in errors.prefix(10) {
-      print("⚠️ Parsing error: \(error)")
+  private func certificateCounts(in airmen: Parser.AirmanDictionary) -> [String: Int] {
+    var counts: [String: Int] = [:]
+    for airman in airmen.values {
+      for certificate in airman.certificates {
+        counts[certificate.kind, default: 0] += 1
+      }
     }
-    if errors.count > 10 {
-      print("⚠️ … and \(errors.count - 10) more errors")
-    }
+    return counts
   }
 
-  func testResult(airmen: Parser.AirmanDictionary) {
-    let mostCerts = airmen.values.max { $0.certificates.count < $1.certificates.count }!
+  private func errorCounts(in errors: [any Error]) -> [String: Int] {
+    var counts: [String: Int] = [:]
+    for error in errors {
+      counts[error.reportKind, default: 0] += 1
+    }
+    return counts
+  }
+
+  // One sample per kind, so a distribution that breaks in several ways shows
+  // each of them rather than the first one thousands of times.
+  private func errorSamples(from errors: [any Error]) -> [String] {
+    var seen = Set<String>()
+    var samples: [String] = []
+    for error in errors where seen.insert(error.reportKind).inserted {
+      samples.append("[\(error.reportKind)] \(error.localizedDescription)")
+      if samples.count == errorSampleLimit { break }
+    }
+    return samples
+  }
+
+  private func describeMostCertificated(among airmen: Parser.AirmanDictionary) {
+    guard let airman = airmen.values.max(by: { $0.certificates.count < $1.certificates.count })
+    else { return }
     print("Airman with most certificates:")
-    print(
-      "\(mostCerts.debugDescription):\n\(mostCerts.certificates.map { "  \($0.description)" }.joined(separator: "\n"))"
-    )
+    print(airman.debugDescription)
+    for certificate in airman.certificates { print("  \(certificate.description)") }
   }
 }

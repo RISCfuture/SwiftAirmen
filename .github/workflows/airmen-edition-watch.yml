@@ -1,0 +1,444 @@
+name: Airmen Edition Watch
+
+# The FAA republishes the airman database on the first of each month, keeping only the current
+# edition and the one before it. A cheap probe gates the expensive parse; the report artifact,
+# named for the edition, doubles as the record of what has already been checked.
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: "Edition to check, as YYYY-MM. Blank uses the current month."
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Look for a new edition
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      issues: write
+    outputs:
+      edition: ${{ steps.target.outputs.edition }}
+      previous-edition: ${{ steps.target.outputs.previous-edition }}
+      published-at: ${{ steps.availability.outputs.published-at }}
+      parse: ${{ steps.decide.outputs.parse }}
+    steps:
+      - name: Resolve the target edition
+        id: target
+        env:
+          REQUESTED: ${{ inputs.edition }}
+        run: |
+          set -euo pipefail
+
+          target=${REQUESTED:-$(date -u +%Y-%m)}
+
+          # `date -d` needs a day to work with; an edition names only a month.
+          if ! [[ "$target" =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]]; then
+            echo "::error::'$target' is not an edition. Use YYYY-MM."
+            exit 1
+          fi
+
+          {
+            echo "edition=$target"
+            echo "previous-edition=$(date -u -d "$target-01 -1 month" +%Y-%m)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check whether the FAA has published it
+        id: availability
+        env:
+          EDITION: ${{ steps.target.outputs.edition }}
+          REQUESTED: ${{ inputs.edition }}
+        run: |
+          set -euo pipefail
+
+          # registry.faa.gov answers HEAD with 503 even for files that exist, and 403s a request
+          # carrying curl's own user agent, so availability has to be read from a one-byte range
+          # GET made to look like a browser. An edition that is not there 302s to an FAA landing
+          # page, which would answer 200 if the redirect were followed — so it is not.
+          url="https://registry.faa.gov/database/CS$(date -u -d "$EDITION-01" +%m%Y).zip"
+          code=$(curl --silent --show-error --range 0-0 \
+                      --user-agent "Mozilla/5.0 (X11; Linux x86_64) SwiftAirmen edition watch" \
+                      --retry 3 --retry-delay 10 --retry-all-errors \
+                      --dump-header headers.txt --output /dev/null \
+                      --write-out '%{http_code}' "$url" || echo 000)
+          echo "$url -> $code"
+
+          if [ "$code" = "206" ]; then
+            available=true
+          else
+            available=false
+          fi
+
+          published=$(grep -i '^last-modified:' headers.txt | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
+          day=$(date -u +%-d)
+
+          # Publication lands on the first of the month. Still missing several days in means the
+          # FAA slipped or the URL changed shape, either of which otherwise looks like a quiet day.
+          if [ "$available" != "true" ] && [ "$day" -ge 5 ] && [ -z "$REQUESTED" ]; then
+            overdue=true
+          else
+            overdue=false
+          fi
+
+          {
+            echo "available=$available"
+            echo "overdue=$overdue"
+            echo "published-at=$published"
+            echo "code=$code"
+            echo "url=$url"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to parse
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EDITION: ${{ steps.target.outputs.edition }}
+          AVAILABLE: ${{ steps.availability.outputs.available }}
+          PUBLISHED: ${{ steps.availability.outputs.published-at }}
+          REQUESTED: ${{ inputs.edition }}
+        run: |
+          set -euo pipefail
+
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+
+          if [ "$AVAILABLE" != "true" ]; then
+            note "Edition $EDITION is not downloadable yet."
+            echo "parse=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "$REQUESTED" ]; then
+            note "Re-checking edition $EDITION on request (published \`$PUBLISHED\`)."
+            echo "parse=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # An existing report artifact is the record that this edition was already checked.
+          artifact="airmen-report-$EDITION"
+          found=$(ARTIFACT="$artifact" gh api \
+            "repos/$GH_REPO/actions/artifacts?name=$artifact&per_page=100" \
+            --jq '[.artifacts[] | select(.name == env.ARTIFACT and .expired == false)] | length')
+
+          if [ "$found" -gt 0 ]; then
+            note "Edition $EDITION has already been checked."
+            echo "parse=false" >> "$GITHUB_OUTPUT"
+          else
+            note "Edition $EDITION is new (published \`$PUBLISHED\`)."
+            echo "parse=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report an edition the FAA never published
+        if: steps.availability.outputs.overdue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EDITION: ${{ steps.target.outputs.edition }}
+          URL: ${{ steps.availability.outputs.url }}
+          CODE: ${{ steps.availability.outputs.code }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "Edition **$EDITION** is still not downloadable. The FAA normally publishes on the"
+            echo "first of the month, so either this edition slipped or the download URL has"
+            echo "changed shape."
+            echo
+            echo "| URL | Range GET |"
+            echo "|---|---|"
+            echo "| \`$URL\` | $CODE |"
+            echo
+            echo "[View the run]($RUN_URL)"
+          } > issue-body.md
+
+          title="Airmen edition $EDITION was never published"
+          number=$(TITLE="$title" gh issue list --state all --search "Airmen edition $EDITION in:title" \
+            --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue-body.md
+          else
+            gh issue create --title "$title" --body-file issue-body.md
+          fi
+
+  parse:
+    name: Parse the edition
+    needs: probe
+    if: needs.probe.outputs.parse == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    env:
+      EDITION: ${{ needs.probe.outputs.edition }}
+      PREVIOUS_EDITION: ${{ needs.probe.outputs.previous-edition }}
+      PUBLISHED: ${{ needs.probe.outputs.published-at }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Name the report and the log
+        run: |
+          set -euo pipefail
+          {
+            echo "REPORT=$RUNNER_TEMP/report.json"
+            echo "PARSE_LOG=$RUNNER_TEMP/parse.log"
+          } >> "$GITHUB_ENV"
+
+      - uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: "6.3"
+
+      - name: Cache SwiftPM build products
+        # Usually misses: a month between runs is well past the seven-day idle eviction. It earns
+        # its place when an edition is re-checked by hand after a fix.
+        uses: actions/cache@v6
+        with:
+          path: |
+            .build
+            ~/.cache/org.swift.swiftpm
+          key: swiftpm-editionwatch-ubuntu-latest-swift6.3-${{ hashFiles('Package.resolved') }}
+
+      - name: Build
+        # Release: a debug build cannot get through 270 MB of CSV in any useful time.
+        run: swift build -c release --target SwiftAirmenE2E
+
+      - name: Fetch the previous edition's report
+        id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ARTIFACT: airmen-report-${{ needs.probe.outputs.previous-edition }}
+        run: |
+          set -euo pipefail
+
+          # download-artifact cannot reach another run's artifact without that run's id, which is
+          # itself state to keep somewhere; the name already carries the edition.
+          id=$(gh api "repos/$GH_REPO/actions/artifacts?name=$ARTIFACT&per_page=100" \
+            --jq '[.artifacts[] | select(.name == env.ARTIFACT and .expired == false)]
+                  | max_by(.id) | .id // empty')
+
+          if [ -z "$id" ]; then
+            echo "No report for $PREVIOUS_EDITION; this edition becomes the baseline for the next."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > previous.zip
+          unzip -o -q previous.zip -d previous
+
+          # A run that died before writing its report still uploaded its log, so the artifact
+          # existing does not mean there is anything to compare against.
+          if [ -f previous/report.json ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The report for $PREVIOUS_EDITION holds no counts; the comparison is skipped."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Parse the edition
+        id: parse
+        env:
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+        run: |
+          set -euo pipefail
+
+          args=(--edition "$EDITION" --working-directory "$RUNNER_TEMP/airmen" --report "$REPORT")
+          if [ "$BASELINE_FOUND" = "true" ]; then
+            args+=(--baseline previous/report.json)
+          fi
+
+          mkdir -p "$RUNNER_TEMP/airmen"
+
+          # The exit code is captured, not propagated: the report still has to be uploaded,
+          # summarized, and turned into an issue.
+          status=0
+          .build/release/SwiftAirmenE2E "${args[@]}" 2>&1 | tee "$PARSE_LOG" || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the report
+        # Uploaded before anything reads it, and on failure too: this artifact is also the record
+        # that the edition was checked, so a broken edition is reported once rather than daily.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: airmen-report-${{ needs.probe.outputs.edition }}
+          path: |
+            ${{ runner.temp }}/report.json
+            ${{ runner.temp }}/parse.log
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Read the verdict out of the report
+        id: verdict
+        if: always()
+        run: |
+          set -euo pipefail
+
+          failed=unknown
+          drift=0
+          if [ -f "$REPORT" ]; then
+            failed=$(jq -r '.failed' "$REPORT")
+            drift=$(jq '.drift | length' "$REPORT")
+          fi
+          {
+            echo "failed=$failed"
+            echo "drift=$drift"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Write the job summary
+        if: always()
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "$REPORT" ]; then
+            echo "The run produced no report for edition \`$EDITION\`; see the log." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "## Airmen edition $EDITION"
+            echo
+            echo "- Published by the FAA: \`$PUBLISHED\`"
+            echo "- Outcome: $(jq -r 'if .failed then "**failed**" else "clean" end' "$REPORT")"
+            jq -r '.failureReasons[]? | "  - \(.)"' "$REPORT"
+            echo
+            jq -r '"- Airmen: \(.airmanCount)", "- Certificates: \(.certificateCount)"' "$REPORT"
+            echo
+            echo "| Certificate | Count |"
+            echo "|---|---:|"
+            jq -r '.certificateCounts | to_entries | sort_by(-.value)[]
+                   | "| \(.key) | \(.value) |"' "$REPORT"
+            echo
+            if [ "$(jq '.errorCounts | length' "$REPORT")" -gt 0 ]; then
+              echo "### Parsing errors"
+              echo
+              echo "| Kind | Count |"
+              echo "|---|---:|"
+              jq -r '.errorCounts | to_entries | sort_by(-.value)[]
+                     | "| `\(.key)` | \(.value) |"' "$REPORT"
+              echo
+            fi
+            if [ "$(jq '.drift | length' "$REPORT")" -gt 0 ]; then
+              echo "### Count drift against $PREVIOUS_EDITION"
+              echo
+              echo "| Metric | $PREVIOUS_EDITION | $EDITION | Reason |"
+              echo "|---|---:|---:|---|"
+              jq -r '.drift[] | "| \(.metric) | \(.was) | \(.now) | \(.reason) |"' "$REPORT"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the edition's issue
+        # Drift files an issue as readily as a parsing error: a certificate kind that quietly
+        # empties raises no error at all, so the count diff is the only thing that would say so.
+        if: >-
+          always() && steps.parse.outcome != 'skipped'
+          && (steps.parse.outputs.status != '0' || steps.verdict.outputs.drift != '0')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STATUS: ${{ steps.parse.outputs.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Everything from the report reaches the body through a file, so nothing the FAA ships is
+          # ever read as shell.
+          {
+            echo "The end-to-end check for edition **$EDITION** (published \`$PUBLISHED\`) found"
+            echo "problems."
+            echo
+            echo "[View the run]($RUN_URL) — the \`airmen-report-$EDITION\` artifact holds the full"
+            echo "report and the tool's log."
+            echo
+
+            if [ -f "$REPORT" ]; then
+              if [ "${STATUS:-1}" != "0" ]; then
+                echo "### Failures"
+                echo
+                jq -r '.failureReasons[]? | "- \(.)"' "$REPORT"
+                echo
+                if [ "$(jq '.errorCounts | length' "$REPORT")" -gt 0 ]; then
+                  echo "| Kind | Count |"
+                  echo "|---|---:|"
+                  jq -r '.errorCounts | to_entries | sort_by(-.value)[]
+                         | "| `\(.key)` | \(.value) |"' "$REPORT"
+                  echo
+                  echo "### Error samples"
+                  echo
+                  echo '```'
+                  jq -r '.errorSamples[]?' "$REPORT"
+                  echo '```'
+                  echo
+                fi
+              fi
+
+              if [ "$(jq '.drift | length' "$REPORT")" -gt 0 ]; then
+                echo "### Count drift against $PREVIOUS_EDITION"
+                echo
+                echo "| Metric | $PREVIOUS_EDITION | $EDITION | Reason |"
+                echo "|---|---:|---:|---|"
+                jq -r '.drift[] | "| \(.metric) | \(.was) | \(.now) | \(.reason) |"' "$REPORT"
+                echo
+              fi
+
+              echo "### Counts"
+              echo
+              jq -r '"- Airmen: \(.airmanCount)", "- Certificates: \(.certificateCount)"' "$REPORT"
+              echo
+              echo "| Certificate | Count |"
+              echo "|---|---:|"
+              jq -r '.certificateCounts | to_entries | sort_by(-.value)[]
+                     | "| \(.key) | \(.value) |"' "$REPORT"
+            else
+              echo "The run produced no report. The tail of its log:"
+              echo
+              echo '```'
+              tail -c 8000 "$PARSE_LOG" 2>/dev/null || echo "No log was produced either."
+              echo '```'
+            fi
+          } > issue-body.md
+
+          # The title is a function of the edition alone, which is what keeps a re-check idempotent.
+          # The search omits the punctuation so GitHub's query parser cannot read it as a qualifier.
+          title="Airmen edition $EDITION: end-to-end check failed"
+          number=$(TITLE="$title" gh issue list --state all --search "Airmen edition $EDITION in:title" \
+            --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+
+          if [ -n "$number" ]; then
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            gh issue comment "$number" --body-file issue-body.md
+          else
+            gh issue create --title "$title" --body-file issue-body.md
+          fi
+
+      - name: Annotate the outcome
+        if: always() && steps.parse.outcome != 'skipped'
+        env:
+          STATUS: ${{ steps.parse.outputs.status }}
+          DRIFT: ${{ steps.verdict.outputs.drift }}
+        run: |
+          set -euo pipefail
+
+          drift=${DRIFT:-0}
+
+          if [ "${STATUS:-1}" != "0" ]; then
+            echo "::error::Edition $EDITION failed its end-to-end check; an issue has been filed."
+          elif [ "$drift" != "0" ]; then
+            echo "::warning::Edition $EDITION parsed cleanly but $drift count(s) drifted."
+          else
+            echo "Edition $EDITION parsed cleanly with no count drift."
+          fi
