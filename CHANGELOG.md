@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [4.0.0] - 2026-10-28
 
 ### Changed (breaking)
 
