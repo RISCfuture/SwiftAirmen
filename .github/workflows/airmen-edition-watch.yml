@@ -188,7 +188,7 @@ jobs:
       PREVIOUS_EDITION: ${{ needs.probe.outputs.previous-edition }}
       PUBLISHED: ${{ needs.probe.outputs.published-at }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
 
       - name: Name the report and the log
         run: |
@@ -198,14 +198,14 @@ jobs:
             echo "PARSE_LOG=$RUNNER_TEMP/parse.log"
           } >> "$GITHUB_ENV"
 
-      - uses: SwiftyLab/setup-swift@latest
+      - uses: SwiftyLab/setup-swift@v1.14.2
         with:
           swift-version: "6.4"
 
       - name: Cache SwiftPM build products
         # Usually misses: a month between runs is well past the seven-day idle eviction. It earns
         # its place when an edition is re-checked by hand after a fix.
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: |
             .build
@@ -273,7 +273,7 @@ jobs:
         # Uploaded before anything reads it, and on failure too: this artifact is also the record
         # that the edition was checked, so a broken edition is reported once rather than daily.
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: airmen-report-${{ needs.probe.outputs.edition }}
           path: |
