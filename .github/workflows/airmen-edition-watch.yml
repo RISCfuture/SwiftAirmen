@@ -6,7 +6,9 @@ name: Airmen Edition Watch
 
 on:
   schedule:
-    - cron: "0 9 * * *"
+    # The 1st through the 5th of each month. The edition lands on the 1st, so these polls find it
+    # within a day, and the 5th is the first day a missing edition is reported as overdue.
+    - cron: "0 9 1-5 * *"
   workflow_dispatch:
     inputs:
       edition:
@@ -80,11 +82,11 @@ jobs:
             available=false
           fi
 
-          published=$(grep -i '^last-modified:' headers.txt | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
+          published=$({ grep -i '^last-modified:' headers.txt || true; } | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
           day=$(date -u +%-d)
 
           # Publication lands on the first of the month. Still missing several days in means the
-          # FAA slipped or the URL changed shape, either of which otherwise looks like a quiet day.
+          # FAA slipped or the URL changed shape, either of which otherwise looks like a quiet poll.
           if [ "$available" != "true" ] && [ "$day" -ge 5 ] && [ -z "$REQUESTED" ]; then
             overdue=true
           else
@@ -271,7 +273,7 @@ jobs:
 
       - name: Upload the report
         # Uploaded before anything reads it, and on failure too: this artifact is also the record
-        # that the edition was checked, so a broken edition is reported once rather than daily.
+        # that the edition was checked, so a broken edition is reported once rather than on every poll.
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
