@@ -86,7 +86,7 @@ jobs:
           day=$(date -u +%-d)
 
           # Publication lands on the first of the month. Still missing several days in means the
-          # FAA slipped or the URL changed shape, either of which otherwise looks like a quiet day.
+          # FAA slipped or the URL changed shape, either of which otherwise looks like a quiet poll.
           if [ "$available" != "true" ] && [ "$day" -ge 5 ] && [ -z "$REQUESTED" ]; then
             overdue=true
           else
@@ -273,7 +273,7 @@ jobs:
 
       - name: Upload the report
         # Uploaded before anything reads it, and on failure too: this artifact is also the record
-        # that the edition was checked, so a broken edition is reported once rather than daily.
+        # that the edition was checked, so a broken edition is reported once rather than on every poll.
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
