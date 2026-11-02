@@ -82,7 +82,7 @@ jobs:
             available=false
           fi
 
-          published=$(grep -i '^last-modified:' headers.txt | tail -n 1 | cut -d' ' -f2- | tr -d '\r' || true)
+          published=$({ grep -i '^last-modified:' headers.txt || true; } | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
           day=$(date -u +%-d)
 
           # Publication lands on the first of the month. Still missing several days in means the
