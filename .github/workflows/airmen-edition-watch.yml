@@ -6,7 +6,9 @@ name: Airmen Edition Watch
 
 on:
   schedule:
-    - cron: "0 9 * * *"
+    # The 1st through the 5th of each month. The edition lands on the 1st, so these polls find it
+    # within a day, and the 5th is the first day a missing edition is reported as overdue.
+    - cron: "0 9 1-5 * *"
   workflow_dispatch:
     inputs:
       edition:
