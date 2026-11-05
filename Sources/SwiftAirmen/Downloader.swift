@@ -27,8 +27,12 @@ public class Downloader {
   private static let calendar = Calendar(identifier: .gregorian)
   private static let progressReportInterval = 1 << 20
 
+  // One session for the life of the process: with the libcurl that Ubuntu 26.04
+  // ships, FoundationNetworking aborts when a session that has made a request is
+  // deallocated, whether or not it was invalidated first.
+  private static let session = URLSession(configuration: .ephemeral)
+
   private let date: Date
-  let session = URLSession(configuration: .ephemeral)
   let workingDirectory: URL
 
   /**
@@ -121,7 +125,7 @@ public class Downloader {
   // single-shot download without incremental progress.
   #if canImport(Darwin)
     private func fetch(_ request: URLRequest, progress: ProgressManager?) async throws -> Data {
-      let (bytes, response) = try await session.bytes(for: request)
+      let (bytes, response) = try await Self.session.bytes(for: request)
       let httpResponse = try validate(response, for: request)
 
       let total = httpResponse.expectedContentLength
@@ -149,7 +153,7 @@ public class Downloader {
     }
   #else
     private func fetch(_ request: URLRequest, progress: ProgressManager?) async throws -> Data {
-      let (data, response) = try await session.data(for: request)
+      let (data, response) = try await Self.session.data(for: request)
       _ = try validate(response, for: request)
       // One indivisible unit: without a streaming API there is nothing to
       // report until the whole body has arrived.
