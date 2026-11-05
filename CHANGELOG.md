@@ -1,5 +1,19 @@
 # Change Log
 
+## [4.0.1] - 2026-11-05
+
+### Changed
+
+- Requires StreamingCSV 3.0.0.
+
+### Fixed
+
+- Downloads no longer crash on Linux distributions with libcurl 8.18, such as
+  Ubuntu 26.04. FoundationNetworking aborts with "_MultiHandle deallocated with
+  non-zero retain count" when a URLSession that has made a request is
+  deallocated, which happened as soon as a `Downloader` was released. Downloaders
+  now share one session that lives for the whole process.
+
 ## [4.0.0] - 2026-10-28
 
 ### Changed (breaking)
