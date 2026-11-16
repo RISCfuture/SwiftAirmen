@@ -4,11 +4,13 @@
 # watchOS 27 / visionOS 27 floor, because Foundation's `ProgressManager`
 # (SF-0023) carries no lower availability annotation.
 #
-# Darwin: the macOS 27 SDK is only on GitHub's `xcode-27` image (there is no
-# `macos-27` label), and that image is selected with `maxim-lobanov/setup-xcode`
-# rather than `SwiftyLab/setup-swift`. The image ships a single prerelease Xcode
-# 27, so the toolchain is picked with `xcode-version: latest`. `macos-15` and
-# `macos-26` cannot supply a macOS 27 SDK at all, so those legs are gone.
+# Darwin: the macOS 27 SDK is only on the `xcode-27` image and the Minerva pools,
+# and the toolchain is selected with `maxim-lobanov/setup-xcode` rather than
+# `SwiftyLab/setup-swift`. The single Xcode 27 is picked with
+# `xcode-version: latest`. `macos-15` and `macos-26` cannot supply a macOS 27 SDK
+# at all, so those legs are gone.
+#
+# The Darwin tests execute macOS 27 code, so they run on the macOS 27 pool.
 #
 # Linux: `ProgressManager` is `@available(FoundationPreview 6.4)` in
 # swift-foundation, so it does not exist on the 6.3 toolchain. Only the Swift 6.4
@@ -27,9 +29,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  route:
+    uses: RISCfuture/ci-workflows/.github/workflows/minerva-route.yml@1.1.0
+    permissions:
+      contents: read
   tests-darwin:
     name: Build and Test (macOS)
-    runs-on: xcode-27
+    needs: route
+    runs-on: ${{ fromJSON(needs.route.outputs.macos-27) }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: maxim-lobanov/setup-xcode@v1.7.0
